@@ -1,13 +1,14 @@
 {
   "Product": "ClearGuard",
-  "Version": "1.1.0",
-  "ExeSHA256": "fb1a3cffda5fb816a7a60a2bb7942b41a7035fd582aa0591524e32b8000712b1",
-  "Passed": 75,
+  "Version": "1.2.0",
+  "ExeSHA256": "33e4ab335985f76fe7bfcd354a3a5421afc4c75ba754d886625f59fd51753c2c",
+  "Passed": 171,
   "Failed": 0,
   "Skipped": 0,
   "LegacySafetyTestsPassed": 33,
-  "AddedSafetyTestsPassed": 42,
+  "AddedSafetyTestsPassed": 138,
   "InstalledAppsRequiredCasesPassed": 4,
+  "V12RequiredCasesPassed": 8,
   "RealUserFilesModified": false,
   "TestScope": "Newly generated isolated fixtures only; no cleanup of real user data.",
   "Tests": [
@@ -309,6 +310,390 @@
     },
     {
       "Name": "CSV reports: leading whitespace formula fields remain inert and unchanged",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: numeric stable versions detect newer release",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: equal stable release is up to date",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: installed version newer than release remains explicit",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: major minor and patch comparisons are numeric",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: stable tags reject prerelease build leading zeros and overflow",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: malformed current version errors before any fetch",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: official link guard accepts only canonical matching repository tags",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: API links cannot escape scheme host repository or tag",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: draft and prerelease responses are never stable",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: required field types and flags fail closed",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: malformed root JSON is an error not up to date",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: duplicate security fields are rejected",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: response text and UTF8 byte sizes are bounded",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: excessive nesting is rejected without running metadata",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: notes are bounded inert text with deceptive controls removed",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: absent and null release bodies are safe empty notes",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: parsed release exposes only validated inert fields",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: fixture fetch is invoked only after explicit check",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: transport permits only bounded fixed HTTPS without redirects or credentials",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: strict JSON rejects extensions escaped duplicate keys and invalid Unicode",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: Persian half spaces and valid Unicode pairs remain plain text",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: 403 and 429 show a visible rate-limit error",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: HTTP failures and empty responses do not masquerade as success",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: redirects are never accepted as release metadata",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: offline boundary errors stay friendly and omit exception details",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: a null boundary response is a visible error",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: canceled check never calls the fetch boundary",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: cancellation bounds even a stalled injected fetch",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: stalled fetch timeout is bounded and visible",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: hostile successful payloads are error results",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: validated URL guard rejects null and mismatched versions",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: UTC evaluation rejects local or unspecified check timestamps",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update checker: zero and maximum supported canonical versions compare safely",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Strict JSON helper: escaped duplicate keys at nested depths are rejected",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Strict JSON helper: valid snapshot metadata has no updater response limit",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: immediate folders and root files partition logical bytes",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: reads metadata without modifying source bytes or write stamps",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: inaccessible folder is unknown not zero",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: bounded entry traversal is partial and never has exact deltas",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: time budget stops traversal and labels observed bytes",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: file metadata errors preserve other observed bytes but remain partial",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: depth and category budgets prevent falsely complete totals",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: cancellation during traversal preserves already observed bytes",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: cancellation returns partial state and prevents persistence",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: snapshot persistence honors pre-cancel without creating storage",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: cancellation before stage write flush or commit leaves no snapshot",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: cancellation after atomic commit returns saved fact",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: mapped network unknown optical and unavailable drive classes are refused",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: canonical aliases compare while other roots do not",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: limits and traversal policy are part of comparison scope",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: new missing and changed categories have signed exact deltas",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: incomplete previous snapshot never manufactures zero delta",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: relative drive-relative network and ADS roots are refused",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: newly persisted snapshots round-trip and never overwrite",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: latest comparison uses only matching complete persisted scope",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: external snapshot paths cannot be imported",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: malicious totals schema and cross-scope keys are rejected",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: oversized snapshot input fails before JSON processing",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: owned snapshot store is excluded explicitly from its scan",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: incomplete newest history is not skipped for an older exact baseline",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: corrupted history disables automatic exact comparison",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: malicious category boundaries unknown fields and fake file totals fail closed",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: duplicate decoded root JSON keys cannot manufacture exact comparison",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: duplicate escaped row bytes and completion keys fail closed",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: aliased trailing-dot and trailing-space path components are refused",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: tilde components cannot alias scan roots or owned snapshot stores",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: enumerated tilde paths fail partial and preserve safe siblings",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: nested tilde paths do not turn partial folder failures into user errors",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: history lookup is bounded without pruning any artifacts",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: option bounds are enforced",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Disk dashboard: junction roots ancestors nested categories and stores are not followed",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: add reload remove persist only app settings",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: strict path validation and existing-folder add",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: case-insensitive hierarchy rejects prefix siblings",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: vanished entries remain protected on load",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: unknown malformed and locked settings fail closed without overwrite",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: stale cache row and nested overlap cannot bypass protection",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: source protected keeper and stale duplicate rows are blocked",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: folder candidate descendant protection is visible",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: organizer stale source destination and restore are blocked",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: settings corruption after scan blocks final cleanup",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: missing previously loaded settings remain fail closed",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: settings directory cannot be a regular file",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: junction settings and folder inputs are refused",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: removing custom entry never weakens built-in protection",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders: tilde and short-path aliases fail closed",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Journal persistence: transient 1175 retries the same atomic replacement",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Journal persistence: sharing violation 32 retries without changing data",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Journal persistence: lock violation 33 retries without changing data",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Journal persistence: unknown and permanent failures immediately rethrow",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Journal persistence: retry exhaustion keeps prior journal and staging file",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Journal persistence: a missing destination never falls back to a move",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Journal persistence: a missing staging file is never replaced or recreated",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Journal persistence: a stage disappearing during delay stops retry safely",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Journal persistence: successful replacement has no retry delay",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Journal persistence: public SaveJournal preserves successive generated receipts",
       "Status": "PASS"
     }
   ],

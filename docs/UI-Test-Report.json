@@ -1,7 +1,7 @@
 {
   "Product": "ClearGuard",
-  "Version": "1.1.0",
-  "ExeSHA256": "fb1a3cffda5fb816a7a60a2bb7942b41a7035fd582aa0591524e32b8000712b1",
+  "Version": "1.2.0",
+  "ExeSHA256": "33e4ab335985f76fe7bfcd354a3a5421afc4c75ba754d886625f59fd51753c2c",
   "Pages": [
     "NavHome:PASS",
     "NavCache:PASS",
@@ -10,12 +10,15 @@
     "NavSources:PASS",
     "NavOrganize:PASS",
     "NavHistory:PASS",
-    "NavSafety:PASS"
+    "NavSafety:PASS",
+    "NavDashboard:PASS",
+    "NavProtected:PASS",
+    "NavUpdates:PASS"
   ],
   "DestructiveOperations": 0,
   "Width": 1380,
   "Height": 881,
-  "Passed": 22,
+  "Passed": 36,
   "Failed": 0,
   "Skipped": 0,
   "RealUserFilesModified": false,
@@ -62,6 +65,18 @@
       "Status": "PASS"
     },
     {
+      "Name": "Navigation NavDashboard selects exactly its own panel",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Navigation NavProtected selects exactly its own panel",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Navigation NavUpdates selects exactly its own panel",
+      "Status": "PASS"
+    },
+    {
       "Name": "Cache preview sorts bytes and clears all default selections",
       "Status": "PASS"
     },
@@ -103,6 +118,50 @@
     },
     {
       "Name": "Busy Exit cancels and waits for worker completion",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Dashboard page is read-only with an explicit scan action",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Updates page checks only on request and has no automatic installation",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Protected folders page provides additive local protection controls",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Manual update interaction makes one fixture request and renders inert notes",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Update failure clears a previously verified link and notes",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Stopping a pending update check leaves version status unknown",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Two dashboard scan interactions persist local baselines and show actual growth",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Partial dashboard preview never exposes exact growth or a delete action",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Custom protection UI persists add and respects cancelled removal without touching content",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Invalid protection input stays local and does not create or weaken settings",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Receipt restore rejects a newly protected original destination before mutation",
       "Status": "PASS"
     },
     {
