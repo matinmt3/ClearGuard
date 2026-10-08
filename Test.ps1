@@ -93,6 +93,7 @@ try {
     $taskRawReport = Join-Path $BuildDirectory 'Safety-Test-Report-raw.json'
     $taskBeforeHash = (Get-FileHash -LiteralPath $taskExe -Algorithm SHA256).Hash.ToLowerInvariant()
     $taskProcess = Start-Process -FilePath $taskExe -ArgumentList @('--self-test',('"'+$taskFixtureRoot+'"'),('"'+$taskRawReport+'"')) -WindowStyle Hidden -Wait -PassThru
+    $taskProcess.Refresh()
     if ($taskProcess.ExitCode -ne 0) { throw 'Safety tests failed; inspect the local raw report. No release packages were generated.' }
     $taskReport = Get-Content -LiteralPath $taskRawReport -Raw | ConvertFrom-Json
     Assert-AllPassed $taskReport 171 'Safety tests'
@@ -116,7 +117,17 @@ try {
     $taskPublic | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $BuildDirectory 'Safety-Test-Report.json') -Encoding UTF8
     $taskUiDir = Join-Path $PSScriptRoot ('work\UiSmoke-'+[Guid]::NewGuid().ToString('N'))
     $taskUi = Start-Process -FilePath $taskExe -ArgumentList @('--ui-smoke',('"'+$taskUiDir+'"')) -WindowStyle Hidden -Wait -PassThru
-    if ($taskUi.ExitCode -ne 0) { throw 'Native UI page or interaction checks failed; inspect the local UI reports.' }
+    $taskUi.Refresh()
+    if ($taskUi.ExitCode -ne 0) {
+        Write-Output ('Native UI process exit code: '+$taskUi.ExitCode)
+        $taskFailureReport = Join-Path $taskUiDir 'ui-integration.json'
+        if (Test-Path -LiteralPath $taskFailureReport -PathType Leaf) {
+            $taskFailureData = Get-Content -LiteralPath $taskFailureReport -Raw | ConvertFrom-Json
+            foreach ($taskFailure in @($taskFailureData.Tests | Where-Object Status -ne 'PASS')) { Write-Output ((ConvertTo-PublicTestText $taskFailure.Name)+': '+(ConvertTo-PublicTestText $taskFailure.Detail)) }
+            Write-Output ('UI report counts: '+$taskFailureData.Passed+' PASS / '+$taskFailureData.Failed+' FAIL / '+$taskFailureData.Skipped+' SKIP')
+        }
+        throw 'Native UI page or interaction checks failed; inspect the local UI reports.'
+    }
     $taskPages = Get-Content -LiteralPath (Join-Path $taskUiDir 'ui-smoke.json') -Raw | ConvertFrom-Json
     $taskChecks = Get-Content -LiteralPath (Join-Path $taskUiDir 'ui-integration.json') -Raw | ConvertFrom-Json
     Assert-AllPassed $taskChecks 36 'Native UI interaction tests'
