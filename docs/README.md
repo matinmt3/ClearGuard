@@ -1,6 +1,6 @@
 # Validation and preview / اعتبارسنجی و پیش‌نمایش
 
-v1.2.0: **171 safety tests / 36 native interaction checks / 11 page renders passed; no failures, skips or real-user cleanup.** Exact executable SHA-256 is recorded in both reports.
+v1.2.0: **171 safety tests / 37 native interaction checks / 11 page renders passed; no failures, skips or real-user cleanup.** Exact executable SHA-256 is recorded in both reports.
 
 - [Persian interface preview / پیش‌نمایش رابط فارسی](Preview.png)
 - [Installed applications with synthetic demo data / برنامه‌ها با دادهٔ مصنوعی نمایشی](InstalledApps.png)
