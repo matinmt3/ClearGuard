@@ -16,6 +16,7 @@ namespace ClearGuard {
   private static string fixture;
   private static TestReport report;
   private static int sequence;
+  private static string processProbe;
   [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
   [return: MarshalAs(UnmanagedType.I1)]
   private static extern bool CreateSymbolicLink(string link,string target,int flags);
@@ -26,6 +27,7 @@ namespace ClearGuard {
    fixture=System.IO.Path.Combine(requested,"ClearGuard-fixture-"+Guid.NewGuid().ToString("N"));
    Directory.CreateDirectory(fixture);
    sequence=0;
+   processProbe=null;
    report=new TestReport{StartedUtc=DateTime.UtcNow,FixtureRoot=fixture,RealUserFilesModified=false,Tests=new List<TestEntry>(),Gaps=new List<string>(),RecoveredPriorFixtureReceipts=new List<string>()};
    RecoverPriorFixtureReceipts(requested);
    Test("Path boundary rejects prefix siblings and dot-dot escape", delegate {
@@ -169,6 +171,11 @@ namespace ClearGuard {
     ProcessGuard.Check("Gradle",ctx,out reason);
     Assert(!Process.GetProcessById(pid).HasExited,"Process guard terminated its caller.");
    });
+   Test("Actual process guard blocks an owned hidden Chrome fixture without stopping it",delegate{AssertRunningGuard("Chrome","chrome","chrome-guard");});
+   Test("Actual process guard blocks an owned hidden Android Studio fixture without stopping it",delegate{AssertRunningGuard("Android Studio","studio64","studio-guard");});
+   Test("Actual process guard blocks an owned hidden Gradle Java fixture without stopping it",delegate{AssertRunningGuard("Gradle","java","gradle-guard");});
+   Test("Actual process guard blocks an owned hidden BlueStacks alias fixture without stopping it",delegate{AssertRunningGuard("BlueStacks","hd-player","bluestacks-guard");});
+   Test("Actual process guard blocks an owned hidden updater fixture without stopping it",delegate{AssertRunningGuard("Chatbox","chatbox","chatbox-guard");});
    Test("Exact source archive duplicates keep newest and remain unselected", delegate {
     ScanContext ctx=NewContext("duplicate-sources");
     string newer=System.IO.Path.Combine(ctx.Desktop,"Example-v2.zip"); MakeZip(newer,"src/Main.cs",Encoding.UTF8.GetBytes("class Example {}"));
@@ -330,9 +337,96 @@ namespace ClearGuard {
     Assert(!result.Rows.Any(delegate(ScanRow r){return r.Eligible&&r.Files.Any(delegate(FileRecord f){return Same(f.Path,artifact);});}),"Unknown local Maven artifact became eligible.");
     Assert(File.Exists(artifact),"Read-only scan modified local Maven artifact.");
    });
+   Test("Source folder keeper handles deny concurrent writes and renames", delegate {
+    ScanContext ctx=NewContext("keeper-folder-lock");
+    string kept=Put(ctx,"Desktop\\Example-v2\\src\\Main.cs",Encoding.UTF8.GetBytes("class Example {}"));
+    string duplicate=Put(ctx,"Desktop\\Example-v1\\src\\Main.cs",Encoding.UTF8.GetBytes("class Example {}"));
+    foreach(string name in new[]{"Example-v1","Example-v2"})Put(ctx,"Desktop\\"+name+"\\package.json",Encoding.UTF8.GetBytes("{\"name\":\"fixture-example\",\"version\":\"1.0.0\"}"));
+    ScanRow row=DesktopScanner.Scan(ctx,CancellationToken.None,null).Rows.First(r=>!String.IsNullOrEmpty(r.Keeper));
+    var method=typeof(DesktopCleanup).GetMethod("OpenKeeperLocks",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static);
+    Assert(method!=null,"Folder keeper is not held against writers or deletion during duplicate recycling.");
+    var locks=(List<FileStream>)method.Invoke(null,new object[]{row,CancellationToken.None});
+    try {
+     bool writeDenied=false,renameDenied=false;
+     try{File.AppendAllText(kept,"writer must be denied");}catch(IOException){writeDenied=true;}
+     try{File.Move(kept,kept+".renamed");}catch(IOException){renameDenied=true;}
+     Assert(writeDenied&&renameDenied,"Keeper can change or disappear while old source is being recycled.");
+     Assert(File.ReadAllText(kept)=="class Example {}"&&File.Exists(duplicate),"Keeper lock modified either source.");
+    } finally {foreach(FileStream locked in locks)locked.Dispose();}
+   });
+   Test("Organizer move handle denies concurrent writers and still permits rename", delegate {
+    ScanContext ctx=NewContext("organizer-move-lock");string source=Put(ctx,"Desktop\\notes.txt",Encoding.UTF8.GetBytes("generated original notes"));
+    ScanRow row=Organizer.Preview(ctx,CancellationToken.None,null).Rows.First(r=>Same(r.Path,source)&&r.Eligible);
+    var method=typeof(Organizer).GetMethod("HoldUnchangedMoveSource",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static);
+    Assert(method!=null,"Organizer does not hold verified content against concurrent writers.");
+    using(var hold=(FileStream)method.Invoke(null,new object[]{row})) {
+     bool denied=false;try{File.AppendAllText(source,"must be denied");}catch(IOException){denied=true;}
+     Assert(denied,"Concurrent write was allowed during organizer move.");
+     Directory.CreateDirectory(System.IO.Path.GetDirectoryName(row.Keeper));File.Move(source,row.Keeper);
+     Assert(File.Exists(row.Keeper)&&SafetyPolicy.HashFile(row.Keeper)==row.Hash,"Read-hold prevented rename or changed fixture bytes.");
+    }
+   });
+   Test("Exact source folders remain report-only and forged deletion is refused", delegate {
+    ScanContext ctx=NewContext("source-folder-roundtrip");
+    Put(ctx,"Desktop\\Example-v2\\src\\Main.cs",Encoding.UTF8.GetBytes("class Example {}"));Put(ctx,"Desktop\\Example-v1\\src\\Main.cs",Encoding.UTF8.GetBytes("class Example {}"));
+    foreach(string name in new[]{"Example-v1","Example-v2"})Put(ctx,"Desktop\\"+name+"\\package.json",Encoding.UTF8.GetBytes("{\"name\":\"fixture-example\",\"version\":\"1.0.0\"}"));
+    string keeper=System.IO.Path.Combine(ctx.Desktop,"Example-v2"),old=System.IO.Path.Combine(ctx.Desktop,"Example-v1");Directory.CreateDirectory(System.IO.Path.Combine(keeper,"empty"));Directory.CreateDirectory(System.IO.Path.Combine(old,"empty"));
+    string before=SafetyPolicy.HashTree(keeper);ScanRow row=DesktopScanner.Scan(ctx,CancellationToken.None,null).Rows.First(r=>Same(r.Path,old)&&!String.IsNullOrEmpty(r.Keeper));Assert(!row.Eligible&&row.SafeBytes==0,"Folder source exposed an unsafe recycle action.");row.Selected=true;row.Eligible=true;
+    OperationReport op=DesktopCleanup.Run(ctx,new List<ScanRow>{row},CancellationToken.None,null);
+    Assert(Directory.Exists(old)&&Directory.Exists(System.IO.Path.Combine(old,"empty"))&&SafetyPolicy.HashTree(old)==before&&SafetyPolicy.HashTree(keeper)==before&&op.ProcessedBytes==0,"Forged folder eligibility bypassed conservative no-mutation policy.");Assert(op.Entries.All(e=>String.Equals(e.Status,"skipped",StringComparison.OrdinalIgnoreCase)),"Refused folder operation has an inaccurate pending or completed receipt.");
+   });
+   Test("Different source branches and duplicates containing media or secrets are preserved", delegate {
+    ScanContext ctx=NewContext("source-unique-protected");Put(ctx,"Desktop\\Branch-v1\\src\\Main.cs",Encoding.UTF8.GetBytes("class Old {}"));Put(ctx,"Desktop\\Branch-v2\\src\\Main.cs",Encoding.UTF8.GetBytes("class New {}"));
+    foreach(string name in new[]{"Branch-v1","Branch-v2","Media-v1","Media-v2","Private-v1","Private-v2"})Put(ctx,"Desktop\\"+name+"\\package.json",Encoding.UTF8.GetBytes("{\"name\":\"fixture-example\",\"version\":\"1.0.0\"}"));
+    foreach(string name in new[]{"Media-v1","Media-v2"}){Put(ctx,"Desktop\\"+name+"\\src\\Main.cs",Encoding.UTF8.GetBytes("class Same {}"));Put(ctx,"Desktop\\"+name+"\\assets\\photo.webp",new byte[]{1,2,3});}
+    foreach(string name in new[]{"Private-v1","Private-v2"}){Put(ctx,"Desktop\\"+name+"\\src\\Main.cs",Encoding.UTF8.GetBytes("class Same {}"));Put(ctx,"Desktop\\"+name+"\\local.properties",Encoding.UTF8.GetBytes("unique.fixture=true"));}
+    ScanResult scan=DesktopScanner.Scan(ctx,CancellationToken.None,null);Assert(scan.Rows.Count==6&&scan.Rows.All(r=>!r.Eligible&&!r.Selected),"Unique branch, media, or local settings became a source deletion candidate.");
+   });
+   Test("Markerless src or app children with unique parent assets remain report-only", delegate {
+    ScanContext ctx=NewContext("ambiguous-source-boundary");
+    foreach(string child in new[]{"src","app"})foreach(string version in new[]{"v1","v2"}) {
+     string project="Markerless-"+child+"-"+version;Put(ctx,"Desktop\\"+project+"\\"+child+"\\Main.cs",Encoding.UTF8.GetBytes("class Same {}"));Put(ctx,"Desktop\\"+project+"\\assets\\personal-photo.png",new byte[]{1,2,3});Put(ctx,"Desktop\\"+project+"\\.env.local",Encoding.UTF8.GetBytes("unique.fixture.version="+version));
+    }
+    ScanResult scan=DesktopScanner.Scan(ctx,CancellationToken.None,null);Assert(scan.Rows.Count==4&&scan.Rows.All(r=>!r.Eligible&&!r.Selected),"Markerless conventional child source was treated as a complete deletable project while parent assets/settings were outside the proof.");
+    Assert(Directory.GetFiles(ctx.Desktop,"personal-photo.png",SearchOption.AllDirectories).Length==4&&Directory.GetFiles(ctx.Desktop,".env.local",SearchOption.AllDirectories).Length==4,"Read-only source-boundary scan modified personal fixture siblings.");
+   });
+   Test("Partial cache cancellation persists completed and cancelled entries with exact bytes", delegate {
+    ScanContext ctx=NewContext("partial-cancel-journal");byte[] bytes=Encoding.UTF8.GetBytes("generated partial-cancel cache");
+    string one=Put(ctx,"AppData\\Local\\node-gyp\\Cache\\one.tmp",bytes),two=Put(ctx,"AppData\\Local\\node-gyp\\Cache\\two.tmp",bytes);ScanRow row=ScannedRowFor(ctx,one);row.Selected=true;
+    using(var cancel=new CancellationTokenSource()) {
+     OperationReport op=CleanupEngine.Run(ctx,new List<ScanRow>{row},true,cancel.Token,delegate(string progress){cancel.Cancel();});
+     Assert(op.ProcessedBytes==bytes.Length&&op.Entries.Count(e=>e.Status=="Deleted")==1&&op.Entries.Any(e=>e.Status=="Cancelled"),"Partial cancellation discarded completed or cancelled outcome.");
+     Assert(new[]{one,two}.Count(File.Exists)==1,"Partial cancellation deleted an unprocessed fixture.");
+     string journal=System.IO.Path.Combine(ctx.ReportDirectory,"operation-"+op.Id+".json");var saved=new System.Web.Script.Serialization.JavaScriptSerializer().Deserialize<OperationReport>(File.ReadAllText(journal));
+     Assert(saved.CompletedUtc!=DateTime.MinValue&&saved.ProcessedBytes==op.ProcessedBytes&&saved.Entries.Count==op.Entries.Count,"Partial cancellation journal is incomplete.");
+    }
+   });
+   Test("Organizer normal move and restore preserve generated media byte-for-byte", delegate {
+    ScanContext ctx=NewContext("organizer-media-roundtrip");byte[] media={137,80,78,71,13,10,26,10,1,2,3,4};string photo=Put(ctx,"Desktop\\fixture-photo.png",media);
+    ScanRow row=Organizer.Preview(ctx,CancellationToken.None,null).Rows.First(r=>Same(r.Path,photo)&&r.Eligible);Assert(!row.Selected,"Organizer auto-selected media.");row.Selected=true;
+    OperationReport moved=Organizer.Apply(ctx,new List<ScanRow>{row},CancellationToken.None,null);Assert(!File.Exists(photo)&&File.ReadAllBytes(row.Keeper).SequenceEqual(media)&&moved.ProcessedBytes==media.Length,"Organizer media move changed or deleted bytes.");
+    OperationReport restored=Organizer.Restore(ctx,moved,CancellationToken.None,null);Assert(File.ReadAllBytes(photo).SequenceEqual(media)&&restored.ProcessedBytes==media.Length,"Organizer normal media restore failed.");
+   });
+   Test("Operation export escapes receipt fields and accurately labels restore versus permanent deletion", delegate {
+    ScanContext ctx=NewContext("operation-export");Directory.CreateDirectory(ctx.ReportDirectory);string html=System.IO.Path.Combine(ctx.ReportDirectory,"receipt.html");
+    var op=new OperationReport{Kind="source-recycle",ProcessedBytes=15,FreeBefore=50,FreeAfter=50,Entries=new List<OperationEntry>{new OperationEntry{OriginalPath="<script>bad()</script>",Detail="<img src=x onerror=bad()>",Status="Recycled",Bytes=15}}};ReportExport.Operation(html,op);string text=File.ReadAllText(html);
+    Assert(!text.Contains("<script>bad()")&&!text.Contains("<img src=x"),"Operation receipt allows executable markup.");Assert(text.Contains("سطل زباله تخلیه نشده"),"Recycle receipt incorrectly claims immediate disk-space release.");
+    op.Kind="restore";ReportExport.Operation(html,op);Assert(File.ReadAllText(html).Contains("بازیابی موارد همین رسید"),"Restore receipt is mislabeled as deletion.");op.Permanent=true;ReportExport.Operation(html,op);Assert(File.ReadAllText(html).Contains("غیرقابل بازگردانی"),"Permanent receipt omits irreversibility.");
+   });
+   Test("Installed app exports escape untrusted fields and preserve unknown size without invented zero", delegate {
+    ScanContext ctx=NewContext("apps-export");Directory.CreateDirectory(ctx.ReportDirectory);string html=System.IO.Path.Combine(ctx.ReportDirectory,"apps.html"),csv=System.IO.Path.Combine(ctx.ReportDirectory,"apps.csv"),json=System.IO.Path.Combine(ctx.ReportDirectory,"apps.json");
+    var result=new InstalledAppsResult();result.Apps.Add(new InstalledAppRow{Name="=2+2",Version="1",Publisher="<script>bad()</script>",InstallLocation=ctx.UserRoot,Source="Registry",SizeBytes=null,SizeKind="Unknown",SizeNote="<img src=x onerror=bad()>"});result.Apps.Add(new InstalledAppRow{Name="Known fixture",Version="1",SizeBytes=12,SizeKind="Estimated",SizeNote="fixture estimate"});result.Warnings.Add("<svg onload=bad()>");
+    ReportExport.Apps(html,result);ReportExport.AppsCsv(csv,result);Format.SaveJson(json,result);
+    string text=File.ReadAllText(html);Assert(!text.Contains("<script>bad()")&&!text.Contains("<img src=x")&&!text.Contains("<svg onload="),"App HTML export contains unescaped metadata.");Assert(text.Contains("نامشخص"),"App export lost unknown-size label.");Assert(File.ReadAllText(csv).Contains("\"'=2+2\""),"App CSV export allows formula execution.");
+    var reread=new System.Web.Script.Serialization.JavaScriptSerializer().Deserialize<InstalledAppsResult>(File.ReadAllText(json));Assert(reread.Apps.Count==2&&!reread.Apps.First(r=>r.Name=="=2+2").SizeBytes.HasValue,"App JSON export invented a zero size.");
+   });
+   InstalledAppsTestReport installedApps=InstalledAppsTests.RunTests(requested);
+   foreach(InstalledAppsTestEntry entry in installedApps.Tests)report.Tests.Add(new TestEntry{Name=entry.Name,Status=entry.Status,Detail=entry.Detail});
+   report.Passed+=installedApps.Passed;report.Failed+=installedApps.Failed;report.Skipped+=installedApps.Skipped;
    report.CompletedUtc=DateTime.UtcNow;
    report.Gaps.Add("No cleanup, recycling, or organization of real user files was performed. All mutation tests used newly generated isolated fixture data.");
-   report.Gaps.Add("Live Android Studio/Gradle/Chrome process detection, ACL-denied folders, shell recycle-limit warnings and giant/corrupt archive limits require interactive/manual testing.");
+   report.Gaps.Add("Process guards were exercised using hidden generated Chrome/Studio/Java/BlueStacks/updater fixture executables, not every vendor version or inaccessible Java-command scenario. ACL-denied folders, shell recycle-limit warnings and giant/corrupt archive limits still require interactive/manual testing.");
+   report.Gaps.Add("Exact source folders are report-only: Windows Shell refuses folder recycling while required write-denial child handles are held (observed HRESULT 0x80270021). Safe source ZIP duplicate recycling and prior receipt restoration remain tested.");
    Format.SaveJson(reportPath,report);
    return report.Failed==0?0:1;
   }
@@ -375,6 +469,21 @@ namespace ClearGuard {
    string script="New-Item -ItemType Junction -Path '"+link.Replace("'","''")+"' -Target '"+target.Replace("'","''")+"' -ErrorAction Stop | Out-Null";
    ProcessStartInfo start=new ProcessStartInfo(executable,"-NoProfile -NonInteractive -EncodedCommand "+Convert.ToBase64String(Encoding.Unicode.GetBytes(script))){UseShellExecute=false,CreateNoWindow=true};
    try{using(Process process=Process.Start(start)){return process.WaitForExit(10000)&&process.ExitCode==0&&Directory.Exists(link);}}catch{return false;}
+  }
+  private static void AssertRunningGuard(string app,string processName,string caseName) {
+   ScanContext ctx=NewContext(caseName);string executable=System.IO.Path.Combine(ctx.UserRoot,processName+".exe");
+   if(processProbe==null) {
+    string folder=System.IO.Path.Combine(fixture,"generated-process-probe");Directory.CreateDirectory(folder);string source=System.IO.Path.Combine(folder,"Probe.cs");processProbe=System.IO.Path.Combine(folder,"Probe.exe");
+    PutAbsolute(source,Encoding.UTF8.GetBytes("using System.Threading; public static class GeneratedProcessGuardFixture { public static void Main(){Thread.Sleep(30000);} }"));
+    string compiler=System.IO.Path.Combine(RuntimeEnvironment.GetRuntimeDirectory(),"csc.exe");Assert(File.Exists(compiler),"Compiler for isolated process-guard fixture is unavailable.");
+    var build=new ProcessStartInfo(compiler,"/nologo /target:winexe /out:\""+processProbe+"\" \""+source+"\""){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden};
+    using(Process compilation=Process.Start(build)){Assert(compilation.WaitForExit(10000)&&compilation.ExitCode==0&&File.Exists(processProbe),"Isolated process-guard fixture did not compile.");}
+   }
+   Assert(Within(executable,fixture)&&!SafetyPolicy.HasReparseAncestor(executable),"Generated process fixture path escaped its boundary.");File.Copy(processProbe,executable);
+   using(Process owned=Process.Start(new ProcessStartInfo(executable){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden})) {
+    try {Assert(!owned.HasExited,"Generated process exited before guard test.");string reason;Assert(!ProcessGuard.Check(app,ctx,out reason)&&!String.IsNullOrWhiteSpace(reason),"Running "+app+" fixture did not block cache cleanup.");Assert(!owned.HasExited,"Process guard stopped a running process.");}
+    finally {if(!owned.HasExited){owned.Kill();owned.WaitForExit(3000);}}
+   }
   }
   private static string Put(ScanContext ctx,string relative,byte[] content){string path=System.IO.Path.GetFullPath(System.IO.Path.Combine(ctx.UserRoot,relative));if(!Within(path,ctx.UserRoot))throw new InvalidOperationException("Fixture path escape.");PutAbsolute(path,content);return path;}
   private static void PutAbsolute(string path,byte[] content){if(!Within(path,fixture))throw new InvalidOperationException("Fixture writes outside isolated root are refused.");Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));File.WriteAllBytes(path,content);}

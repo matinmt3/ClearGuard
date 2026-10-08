@@ -21,6 +21,7 @@ namespace ClearGuard {
    foreach(string path in roots.Distinct(StringComparer.OrdinalIgnoreCase)) {
     token.ThrowIfCancellationRequested(); if(progress!=null)progress("بررسی سورس: "+Path.GetFileName(path));
     ProjectProof proof=ProveFolder(path,token); if(!proof.Source)continue;
+    if(IsUnscopedSourceChild(path)){proof.Safe=false;proof.Reason="پوشهٔ src/app بدون شناسهٔ مستقل پروژه؛ فایل‌های یکتای والد ممکن است بیرون از محدودهٔ تطبیق باشند. فقط گزارش، بدون حذف.";}
     result.Rows.Add(ToRow(path,proof,false));
    }
    foreach(string path in archives.Distinct(StringComparer.OrdinalIgnoreCase)) {
@@ -32,12 +33,23 @@ namespace ClearGuard {
     var members=group.OrderBy(r=>LooksBackup(r.Path)?1:0).ThenByDescending(r=>VersionNumber(r.Path)).ThenBy(r=>r.Path.Length).ThenBy(r=>r.Path,StringComparer.OrdinalIgnoreCase).ToList();
     if(members.Count<2)continue;ScanRow keeper=members[0];keeper.Status="نسخهٔ نگه‌داری‌شده";keeper.Effect="محتوای دقیقاً یکسان با نسخه‌های اضافی؛ این نسخه حفظ می‌شود.";
     foreach(ScanRow row in members.Skip(1)) {
-     row.Keeper=keeper.Path;row.Eligible=true;row.Selected=false;row.SafeBytes=row.Bytes;row.Status="تکراریِ اثبات‌شده؛ نیازمند انتخاب";
+     row.Keeper=keeper.Path;row.Selected=false;
+     if(Directory.Exists(row.Path)){row.Eligible=false;row.SafeBytes=0;row.Status="تکراریِ پوشه؛ فقط گزارش";row.BlockReason="برای حفظ قفل ضد تغییر فایل‌ها، بازیافت پوشهٔ سورس در این نسخه غیرفعال است؛ Windows Shell با این قفل‌ها انتقال پوشه را رد می‌کند.";row.Effect="تطبیق کامل محتوا گزارش می‌شود، اما پوشه و نسخهٔ نگه‌داری‌شده دست‌نخورده باقی می‌مانند. بازیافت امن فعلاً فقط برای ZIP سورس ارائه می‌شود.";continue;}
+     row.Eligible=true;row.SafeBytes=row.Bytes;row.Status="تکراریِ اثبات‌شده؛ نیازمند انتخاب";
      if(File.Exists(keeper.Path)){row.KeeperHash=keeper.Hash;row.KeeperBytes=keeper.Bytes;row.KeeperModifiedTicks=File.GetLastWriteTimeUtc(keeper.Path).Ticks;}
      row.Effect="تمام فایل‌ها و مسیرهای نسبی با نسخهٔ نگه‌داری‌شده برابرند. فقط با انتخاب شما به سطل بازیافت فرستاده می‌شود؛ تاریخ یا شمارهٔ نسخه مبنای حذف نیست.";
     }
    }
    result.Rows=result.Rows.OrderByDescending(r=>r.Bytes).ToList();result.CompletedUtc=DateTime.UtcNow;return result;
+  }
+  private static bool IsUnscopedSourceChild(string path) {
+   string leaf=Path.GetFileName(path);if(!leaf.Equals("src",StringComparison.OrdinalIgnoreCase)&&!leaf.Equals("app",StringComparison.OrdinalIgnoreCase))return false;
+   try {
+    // Code alone in a conventional child folder does not prove the whole project boundary.
+    // A real project manifest at that child root makes its scope explicit; age/name never does.
+    if(Directory.Exists(Path.Combine(path,".git"))||File.Exists(Path.Combine(path,".git")))return false;
+    return !Directory.GetFiles(path).Any(file=>Markers.Contains(Path.GetFileName(file))||new[]{".sln",".csproj",".vbproj",".vcxproj"}.Contains(Path.GetExtension(file),StringComparer.OrdinalIgnoreCase));
+   }catch{return true;}
   }
   private static void Gather(string path,int depth,List<string> roots,List<string> archives,CancellationToken token,List<string> warnings) {
    token.ThrowIfCancellationRequested();if(SafetyPolicy.HasReparseAncestor(path)){warnings.Add("پیوند دنبال نشد: "+path);return;}
@@ -146,7 +158,7 @@ namespace ClearGuard {
    if(!SafetyPolicy.IsWithin(row.Path,desktop)||!SafetyPolicy.IsWithin(row.Keeper,desktop)||String.Equals(Path.GetFullPath(row.Path),desktop,StringComparison.OrdinalIgnoreCase)||String.Equals(Path.GetFullPath(row.Path),Path.GetFullPath(row.Keeper),StringComparison.OrdinalIgnoreCase)){reason="مسیر خارج از دسکتاپ یا همان نسخهٔ اصلی است.";return false;}
    if(SafetyPolicy.HasReparseAncestor(row.Path)||SafetyPolicy.HasReparseAncestor(row.Keeper)){reason="مسیر پیوندی / junction اجازه ندارد.";return false;}
    if(IsOriginal(row.Path,out reason)||IsOriginal(row.Keeper,out reason))return false;
-   bool folder=Directory.Exists(row.Path);if(folder!=Directory.Exists(row.Keeper)){reason="نوع نسخه‌ها تغییر کرده است.";return false;}
+   bool folder=Directory.Exists(row.Path);if(folder){reason="بازیافت پوشهٔ سورس با حفظ قفل ضد تغییر، در این نسخه فقط گزارش است؛ حتی ردیف قدیمی یا دست‌کاری‌شده حذف نمی‌شود.";return false;}if(folder!=Directory.Exists(row.Keeper)){reason="نوع نسخه‌ها تغییر کرده است.";return false;}
    if(!folder&&(!File.Exists(row.Path)||!File.Exists(row.Keeper)||!Path.GetExtension(row.Path).Equals(".zip",StringComparison.OrdinalIgnoreCase)||!Path.GetExtension(row.Keeper).Equals(".zip",StringComparison.OrdinalIgnoreCase))){reason="آرشیو سورس معتبر پیدا نشد.";return false;}
    if(!folder){FileInfo keeperInfo=new FileInfo(row.Keeper);if(String.IsNullOrEmpty(row.KeeperHash)||keeperInfo.Length!=row.KeeperBytes||keeperInfo.LastWriteTimeUtc.Ticks!=row.KeeperModifiedTicks||SafetyPolicy.HashFile(row.Keeper)!=row.KeeperHash){reason="آرشیو نگه‌داری‌شده بعد از اسکن تغییر کرده است؛ دوباره اسکن کنید.";return false;}}
    ProjectProof current=folder?ProveFolder(row.Path,token):ProveArchive(row.Path,token);ProjectProof kept=folder?ProveFolder(row.Keeper,token):ProveArchive(row.Keeper,token);
@@ -169,13 +181,35 @@ namespace ClearGuard {
      var locks=new List<FileStream>();
      try {
       foreach(FileRecord record in row.Files){if(SafetyPolicy.HasReparseAncestor(record.Path))throw new IOException("مسیر پس از بررسی پیوندی شد.");locks.Add(new FileStream(record.Path,FileMode.Open,FileAccess.Read,FileShare.Read|FileShare.Delete));}
-      if(File.Exists(row.Keeper))locks.Add(new FileStream(row.Keeper,FileMode.Open,FileAccess.Read,FileShare.Read|FileShare.Delete));
+      locks.AddRange(OpenKeeperLocks(row,token));
       if(!DesktopScanner.VerifySourceRow(ctx,row,token,out reason)){pending.Status="skipped";pending.Detail=reason;DesktopJournal.Persist(ctx,report,out reason);continue;}
       OperationEntry entry=RecycleService.Recycle(row.Path);report.Entries[report.Entries.Count-1]=entry;if(String.Equals(entry.Status,"recycled",StringComparison.OrdinalIgnoreCase)||String.Equals(entry.Status,"success",StringComparison.OrdinalIgnoreCase)){entry.Bytes=row.Bytes;report.ProcessedBytes+=row.Bytes;}DesktopJournal.Persist(ctx,report,out reason);
      } finally {foreach(FileStream fileLock in locks)fileLock.Dispose();}
     }catch(OperationCanceledException){report.Entries.Add(Skip(row,"عملیات لغو شد؛ این مسیر حذف نشد."));break;}catch(Exception e){report.Entries.Add(Skip(row,e.Message));}
    }
    report.FreeAfter=Format.FreeC();report.CompletedUtc=DateTime.UtcNow;string saveReason;DesktopJournal.Persist(ctx,report,out saveReason);return report;
+  }
+  internal static List<FileStream> OpenKeeperLocks(ScanRow row,CancellationToken token) {
+   var locks=new List<FileStream>();
+   try {
+    token.ThrowIfCancellationRequested();if(row==null||String.IsNullOrEmpty(row.Keeper)||SafetyPolicy.HasReparseAncestor(row.Keeper))throw new IOException("نسخهٔ نگه‌داری‌شده معتبر و غیرپیوندی لازم است.");
+    if(File.Exists(row.Keeper)) {
+     var hold=new FileStream(row.Keeper,FileMode.Open,FileAccess.Read,FileShare.Read);locks.Add(hold);
+     if(hold.Length!=row.KeeperBytes||String.IsNullOrEmpty(row.KeeperHash)||SafetyPolicy.HashStream(hold)!=row.KeeperHash)throw new IOException("محتوای نسخهٔ نگه‌داری‌شده تغییر کرده است.");
+    } else {
+     if(!Directory.Exists(row.Keeper)||!Directory.Exists(row.Path)||row.Files==null||row.Files.Count==0)throw new IOException("پوشهٔ نگه‌داری‌شده قابل اثبات نیست.");
+     string original=Path.GetFullPath(row.Path).TrimEnd('\\')+"\\";
+     foreach(FileRecord record in row.Files) {
+      token.ThrowIfCancellationRequested();
+      if(!SafetyPolicy.IsWithin(record.Path,row.Path)||String.IsNullOrEmpty(record.Hash))throw new IOException("Manifest سورس کامل نیست.");
+      string kept=Path.GetFullPath(Path.Combine(row.Keeper,Path.GetFullPath(record.Path).Substring(original.Length)));
+      if(!SafetyPolicy.IsWithin(kept,row.Keeper)||SafetyPolicy.HasReparseAncestor(kept))throw new IOException("فایل نگه‌داری‌شده پیوندی یا خارج از محدوده است.");
+      var hold=new FileStream(kept,FileMode.Open,FileAccess.Read,FileShare.Read);locks.Add(hold);
+      if(hold.Length!=record.Bytes||SafetyPolicy.HashStream(hold)!=record.Hash)throw new IOException("محتوای سورس نگه‌داری‌شده تغییر کرده است.");
+     }
+    }
+    return locks;
+   }catch{foreach(FileStream hold in locks)hold.Dispose();throw;}
   }
   private static OperationEntry Skip(ScanRow r,string why){return new OperationEntry{OriginalPath=r.Path,Status="skipped",Detail=why,Bytes=0};}
  }
@@ -234,12 +268,26 @@ namespace ClearGuard {
      var receipt=new OperationEntry{OriginalPath=row.Path,DestinationPath=row.Keeper,Status="pending",Detail="انتقال هنوز تکمیل نشده است.",Bytes=row.Bytes,Hash=row.Hash};report.Entries.Add(receipt);
      if(!DesktopJournal.Persist(ctx,report,out reason)){receipt.Status="skipped";receipt.Detail="رسید پیش از انتقال ذخیره نشد: "+reason;continue;}
      string parent=Path.GetDirectoryName(row.Keeper);Directory.CreateDirectory(parent);
-     if(SafetyPolicy.HasReparseAncestor(parent)){report.Entries.Add(new OperationEntry{OriginalPath=row.Path,Status="skipped",Detail="مقصد پس از اسکن پیوندی شده است."});continue;}
-     File.Move(row.Path,row.Keeper);string after=SafetyPolicy.HashFile(row.Keeper);
-     receipt.Status=after==row.Hash?"moved":"verify-failed";receipt.Detail=after==row.Hash?"انتقال تأییدشده با SHA-256؛ قابل بازگردانی.":"فایل مقصد حفظ شد؛ تطابق پس از انتقال نیازمند بررسی است.";if(receipt.Status=="moved")report.ProcessedBytes+=row.Bytes;DesktopJournal.Persist(ctx,report,out reason);
+     if(SafetyPolicy.HasReparseAncestor(parent)){receipt.Status="skipped";receipt.Detail="مقصد پس از اسکن پیوندی شده است.";DesktopJournal.Persist(ctx,report,out reason);continue;}
+     try {using(FileStream hold=HoldUnchangedMoveSource(row)) {
+      // Deny writers through the final checksum and rename, while allowing our move.
+      if(!CanMove(ctx,row.Path,row.Keeper,out reason))throw new IOException(reason);
+      File.Move(row.Path,row.Keeper);string after=SafetyPolicy.HashFile(row.Keeper);
+      receipt.Status=after==row.Hash?"moved":"verify-failed";receipt.Detail=after==row.Hash?"انتقال تأییدشده با SHA-256؛ قابل بازگردانی.":"فایل مقصد حفظ شد؛ تطابق پس از انتقال نیازمند بررسی است.";if(receipt.Status=="moved")report.ProcessedBytes+=row.Bytes;DesktopJournal.Persist(ctx,report,out reason);
+     }}catch(Exception e){receipt.Status=File.Exists(row.Path)?"skipped":"verify-failed";receipt.Detail=e.Message;DesktopJournal.Persist(ctx,report,out reason);}
     }catch(OperationCanceledException){report.Entries.Add(new OperationEntry{OriginalPath=row.Path,Status="cancelled",Detail="لغو شد."});break;}catch(Exception e){report.Entries.Add(new OperationEntry{OriginalPath=row.Path,Status="skipped",Detail=e.Message});}
    }
    report.FreeAfter=Format.FreeC();report.CompletedUtc=DateTime.UtcNow;string saveReason;DesktopJournal.Persist(ctx,report,out saveReason);return report;
+  }
+  internal static FileStream HoldUnchangedMoveSource(ScanRow row) {
+   if(row==null||row.Files==null||row.Files.Count!=1||String.IsNullOrEmpty(row.Hash)||SafetyPolicy.HasReparseAncestor(row.Path))throw new IOException("رسید اسکن یا مسیر انتقال معتبر نیست.");
+   FileRecord record=row.Files[0];
+   if(!String.Equals(Path.GetFullPath(record.Path),Path.GetFullPath(row.Path),StringComparison.OrdinalIgnoreCase))throw new IOException("مسیر Manifest با فایل انتقال برابر نیست.");
+   var hold=new FileStream(row.Path,FileMode.Open,FileAccess.Read,FileShare.Read|FileShare.Delete);
+   try {
+    if(hold.Length!=record.Bytes||new FileInfo(row.Path).LastWriteTimeUtc.Ticks!=record.ModifiedTicks||SafetyPolicy.HashStream(hold)!=row.Hash)throw new IOException("فایل پس از پیش‌نمایش تغییر کرده است؛ دوباره اسکن کنید.");
+    return hold;
+   }catch{hold.Dispose();throw;}
   }
   public static OperationReport Restore(OperationReport original,CancellationToken token,Action<string> progress) {
    return Restore(ScanContext.Current(),original,token,progress);

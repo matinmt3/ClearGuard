@@ -1,5 +1,6 @@
 build/
 dist/
+dist-*/
 work/
 .vs/
 *.user
@@ -9,4 +10,14 @@ work/
 *.dll
 *.zip
 *-raw.json
+*.error.txt
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+ClearGuard-*.json
+ClearGuard-*.html
+ClearGuard-*.csv
 !.github/

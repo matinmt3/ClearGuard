@@ -1,5 +1,36 @@
 # Changelog / تغییرات
 
+## 1.1.0 — 2026-10-08
+
+### Added
+
+- Visible Exit button with cancellation-and-wait behavior while a background operation is running.
+- Read-only installed-application inventory from machine/current-user 32-/64-bit registry views and a best-effort query of current-user Store packages.
+- Labeled registry size estimates, explicit selected-installation-folder measurement, unknown/incomplete states, and JSON/HTML/CSV application exports; no uninstall action.
+- Installed-application regression fixtures and native interaction checks for all eight pages, the installed-app grid, and idle/busy Exit.
+
+### Changed
+
+- Release packaging now verifies the legacy safety cases, added regressions, all page renders, interaction checks, and the exact executable hash before producing assets.
+- Public test reports omit local paths and private exception diagnostics; output directories remain non-overwriting and prior releases remain available.
+
+### Fixed / Safety
+
+- Result and application size columns sort by numeric bytes, not formatted size strings.
+- Reverified source ZIP keepers cannot be concurrently written or renamed during recycling; organizer sources retain write-denial holds through the final verification and move.
+- Source project folder duplicates are report-only: Windows Shell refuses recycling under the required protection holds, so folder cleanup is blocked instead of weakening the holds. Existing verified folder-receipt restore remains supported.
+- Markerless `src`/`app` child folders cannot stand in for an entire project while unique parent settings/assets are outside the comparison boundary.
+
+### فارسی
+
+- اضافه شدن دکمهٔ مشخص «خروج» با توقف و انتظار امن حین کار.
+- بخش خواندنی برنامه‌های نصب‌شده با نام، نسخه، ناشر، مسیر و حجمِ تخمینی/اندازه‌گیری‌شده؛ مقدار نامشخص صفر معرفی نمی‌شود و Uninstall ندارد.
+- اندازه‌گیری انتخابی پوشهٔ نصبِ محدود، خروجی JSON/HTML/CSV و توضیح هم‌پوشانی/فایل‌های مشترک؛ بدون ادعای جمع دقیق حجم کل برنامه‌ها.
+- آزمون‌های تازهٔ برنامه‌ها و تعامل رابط، حفظ آزمون‌های قبلی، کنترل هشت صفحه و هش همان فایل اجرایی در بسته‌بندی انتشار.
+- مرتب‌سازی عددی حجم، قفل نسخهٔ نگه‌داری‌شدهٔ ZIP در برابر تغییر/تغییرنام و قفل فایلِ دسته‌بندی تا بررسی/انتقال نهایی.
+- پوشهٔ پروژهٔ تکراری فقط گزارش می‌شود: به‌جای ضعیف کردن قفل‌ها برای بازیافت Windows Shell، پاک‌سازی تازهٔ پوشه مسدود است؛ بازگردانی رسید معتبر قبلی حفظ شده است.
+- پوشهٔ `src`/`app` بدون شناسهٔ مستقل پروژه، جای کل پروژه با دادهٔ یکتای والد فرض نمی‌شود.
+
 ## 1.0.0 — 2026-10-08
 
 ### Added

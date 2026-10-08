@@ -4,7 +4,7 @@ ClearGuard can mutate local files after explicit user approval. Treat it as a sa
 
 ## Supported release
 
-The published v1.0.0 source and release assets document the current implementation. There is no automatic update or cleanup service. Use the official repository/release, verify checksums, and do not disable Windows protection or antivirus. The executable is not digitally signed.
+The published v1.1.0 source and release assets document the current implementation. There is no automatic update or cleanup service. Use the official repository/release, verify checksums, and do not disable Windows protection or antivirus. The executable is not digitally signed. Older release assets remain available for rollback; preserve recovery receipts when changing versions.
 
 ## Safety model
 
@@ -15,7 +15,10 @@ The published v1.0.0 source and release assets document the current implementati
 - Recycle Bin is the default; there is no permanent-delete fallback if recycling fails. Receipts and payload hashes are checked. A receipt failure is reported for manual inspection rather than claimed as a successful verified recycle.
 - Restore verifies its receipt and content and refuses to overwrite an existing destination. Retain the local journal and Recycle Bin item if you need recovery.
 - Permanent deletion is explicitly selected, cache-only, requires typed confirmation, and is not recoverable through the app.
-- No process termination, uninstall, direct Windows Update removal, whole Recycle Bin emptying, or remote inventory upload is implemented.
+- Source project folders are report-only in v1.1.0. Windows Shell refuses folder recycling under the required file protection holds; the application refuses new folder cleanup, including stale/forged eligible rows, instead of removing the holds. Explicit recycling of verified safe exact source ZIP duplicates and restore of existing verified folder receipts remain available.
+- No installed-application or unrelated-process termination, uninstall, direct Windows Update removal, whole Recycle Bin emptying, or remote inventory upload is implemented. The best-effort Store metadata query can terminate only the private read-only PowerShell helper that ClearGuard itself started, on cancellation or timeout.
+- Installed-application discovery and size measurement are read-only. Registry estimates are not verified disk usage; unknown, shared, overlapping, inaccessible, and cancelled measurements must not be treated as an exact reclaimable total. Uninstall commands recorded by Windows are never executed by this feature.
+- Exit during background work cancels and waits for completion. Cancellation is cooperative and may not interrupt an in-progress OS call or an individual file inspection immediately.
 
 ## Limits and operational precautions
 
@@ -25,7 +28,7 @@ The published v1.0.0 source and release assets document the current implementati
 4. Recycle Bin capacity limits and shell policy are not universally tested. The application requests recycling without silently falling back to permanent deletion, but users should still watch for Windows warnings and inspect reported failures.
 5. Recycle Bin storage still occupies the drive. ClearGuard never empties it. Logical processed bytes are not the same as newly available disk space.
 6. Local journals/reports contain paths, names, hashes, and possibly crash metadata. Do not publish them unredacted. A crash dump can contain sensitive application memory; deleting an old dump also loses debugging evidence.
-7. Public validation is local fixture and native-render evidence. It is not a blanket certification across Windows versions, live Android Studio/Gradle/Chrome states, ACL-denied directories, or enormous/corrupt archive behavior.
+7. Public validation is local fixture, native-render, and UI interaction evidence. It is not a blanket certification across every installed application, Windows version, live Android Studio/Gradle/Chrome state, ACL-denied directory, or enormous/corrupt archive behavior.
 
 ## Report a safety issue
 
@@ -43,9 +46,12 @@ ClearGuard پس از انتخاب و تأیید شما می‌تواند فای�
 - قبل از اقدام مسیر، اندازه، زمان، هش و وضعیت برنامه دوباره بررسی می‌شود. برنامهٔ مرتبط را خودتان ببندید و دوباره اسکن کنید.
 - Recycle Bin پیش‌فرض است و شکست آن به حذف دائمی تبدیل نمی‌شود. رسید ناموفق را برای بررسی دستی گزارش می‌کند.
 - بازگردانی فایل موجود را بازنویسی نمی‌کند. برای بازیابی، رسید محلی و مورد داخل سطل زباله را نگه دارید.
-- حذف دائمی فقط کشِ مجاز با تأیید تایپی است؛ قابل بازیابی نیست. برنامه سطل زباله را تخلیه، برنامه را Uninstall یا فرایندی را به‌اجبار متوقف نمی‌کند.
+- پوشهٔ پروژه در ۱.۱.۰ فقط گزارش است. Windows Shell بازیافت پوشه را با قفل‌های حفاظتی لازم رد می‌کند؛ قفل‌ها ضعیف نمی‌شوند و ردیف قدیمی/دست‌کاری‌شدهٔ پوشه هم مجوز حذف ندارد. ZIP سورسِ کاملاً یکسان و تأییدشده انتخابی بازیافت می‌شود و بازگردانی رسید معتبر قبلی پوشه حفظ شده است.
+- حذف دائمی فقط کشِ مجاز با تأیید تایپی است؛ قابل بازیابی نیست. برنامه سطل زباله را تخلیه، برنامه را Uninstall یا برنامهٔ نصب‌شده/فرایند نامرتبط را به‌اجبار متوقف نمی‌کند. تنها helper خواندنیِ PowerShell که خود ClearGuard برای پرس‌وجوی Store اجرا کرده ممکن است هنگام لغو یا پایان مهلت متوقف شود.
 - انتقال به سطل زباله فضای همان درایو را آزاد نمی‌کند؛ اندازهٔ منطقی پردازش با فضای واقعاً آزادشده متفاوت است.
+- بخش برنامه‌های نصب‌شده فقط خواندنی است؛ حجم Registry تخمینی است و نامشخص/ناقص یا هم‌پوشان، حجم قطعی قابل آزادسازی نیست. فرمان Uninstall اجرا نمی‌شود.
+- خروج حین کار به‌صورت درخواست توقف و انتظار امن است؛ فراخوانی جاری ویندوز یا بررسی یک فایل ممکن است فوراً متوقف نشود.
 - گزارش و Dump می‌تواند اطلاعات خصوصی داشته باشد؛ آن را بدون بازبینی منتشر نکنید. حذف Dump امکان تحلیل خرابی گذشته را از بین می‌برد.
-- آزمون‌ها روی دادهٔ مصنوعی و رندر محلی انجام شده‌اند؛ همهٔ نسخه‌های ویندوز، فرایندهای زنده، ACL و سیاست ظرفیت سطل زباله پوشش کامل ندارند.
+- آزمون‌ها روی دادهٔ مصنوعی، رندر و تعامل بومی محلی انجام شده‌اند؛ تمام برنامه‌های نصب‌شده، نسخه‌های ویندوز، فرایندهای زنده، ACL و سیاست ظرفیت سطل زباله پوشش کامل ندارند.
 
 برای مشکل ایمنی، استفاده از بخش حذف مرتبط را متوقف کنید و رسید/مورد قابل بازیابی را حفظ کنید. گزارش را با نمونهٔ مصنوعی و بدون فایل شخصی، کلید، رمز، Dump خام یا فهرست محلیِ بدون پوشاندن اطلاعات ارائه دهید. برای آسیب‌پذیری از گزارش خصوصی امنیتی GitHub، در صورت فعال بودن، استفاده کنید.

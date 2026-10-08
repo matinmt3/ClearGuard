@@ -1,45 +1,55 @@
-# ClearGuard v1.0.0
+# ClearGuard v1.1.0
 
 ## فارسی
 
-نسخهٔ نخست ClearGuard: ابزار قابل‌حمل ویندوز با رابط فارسی برای بررسی و پاک‌سازی محافظه‌کارانهٔ کش‌های قابل بازسازی، گزارش فایل‌های حجیم، بررسی سورس‌های تکراری و دسته‌بندی انتخابی دسکتاپ.
+این نسخه دکمهٔ مشخص «خروج» و بخش «برنامه‌های نصب‌شده» را اضافه می‌کند؛ قابلیت‌های پاک‌سازی محافظه‌کارانهٔ نسخهٔ قبل حفظ شده‌اند.
+
+### تغییرات
+
+- خروج در حالت بیکار برنامه را می‌بندد؛ هنگام کار ابتدا درخواست توقف می‌دهد و تا پایان امن عملیات منتظر می‌ماند.
+- فهرست خواندنی برنامه‌های نصب‌شده: نام، نسخه، ناشر، مسیر نصب و اطلاعات حجم از Registry کاربر/سیستم در نماهای ۳۲/۶۴بیتی، همراه پرس‌وجوی Store کاربر فعلی در صورت دسترسی.
+- حجم Registry با برچسب «تخمینی» است؛ حجم ناموجود «نامشخص» است، نه صفر. اندازه‌گیری پوشهٔ نصبِ واقعی و محدود، انتخابی و فقط خواندنی است. حجم مشترک/هم‌پوشان یا ناقص جمع دقیق فضای کل سیستم نیست.
+- گزارش برنامه‌ها در JSON/CSV/HTML؛ هیچ برنامه‌ای Uninstall نمی‌شود و فرمان Uninstall اجرا نمی‌شود.
+- گزارش جدید فایل JSON/HTML/CSV موجود را بازنویسی نمی‌کند؛ حفاظت CSV در برابر فرمول با فاصلهٔ ابتدایی هم فعال است. انتخاب موارد مجاز فقط روی ردیف‌های قابل‌مشاهده انجام می‌شود.
+- گسترش آزمون‌های fixture برای تشخیص/اندازه‌گیری برنامه‌ها و آزمون تعامل بومی هشت صفحه، از جمله خروج بیکار/مشغول و جدول برنامه‌های بدون امکان حذف.
+- اصلاح مرتب‌سازی عددی حجم و حفظ قفل ضد تغییر نسخهٔ نگه‌داری‌شدهٔ ZIP و فایل دسته‌بندی تا بررسی/اقدام نهایی.
+- **پوشهٔ سورس فقط گزارش می‌شود**؛ Windows Shell با قفل‌های حفاظتی لازم بازیافت پوشه را رد می‌کند، پس حذف پوشه مسدود است و حفاظت ضعیف نمی‌شود. ZIP سورسِ کاملاً یکسان و تأییدشده همچنان انتخابی بازیافت می‌شود؛ بازگردانی رسید معتبر قبلی پوشه حفظ شده است. `src`/`app` بدون شناسهٔ مستقل نیز فقط گزارش است.
 
 ### دانلود و اجرا
 
-فایل `ClearGuard-1.0.0-Windows-Portable.zip` را استخراج کنید و `ClearGuard.exe` را کنار فایل config اجرا کنید. Windows 10/11 و .NET Framework 4.8؛ بدون نصب و نیاز به Administrator. سورس در `ClearGuard-1.0.0-Source.zip` و مخزن موجود است. هش فایل‌های انتشار در `SHA256SUMS.txt` آمده است.
+`ClearGuard-1.1.0-Windows-Portable.zip` را استخراج و `ClearGuard.exe` را کنار config اجرا کنید. Windows 10/11 و .NET Framework 4.8؛ بدون نصب و نیاز به Administrator. سورس در `ClearGuard-1.1.0-Source.zip` و مخزن موجود است؛ هش فایل‌ها در `SHA256SUMS.txt` آمده است. برای ارتقا ابتدا نسخهٔ در حال اجرا را ببندید؛ رسیدهای بازیابی را نگه دارید. انتشار ۱.۰.۰ برای بازگشت باقی می‌ماند.
 
-### نکات مهم
+### ایمنی و اعتبارسنجی
 
-- ابتدا اسکن؛ هیچ حذف خودکار یا زمان‌بندی‌شده‌ای ندارد.
-- عکس و فیلم، فایل شخصی، پروژه، سورس، APK، کلید و LocalHistory از پاک‌سازی محافظت می‌شوند. Codex sessions/runtime، AVD و SDK حفظ می‌شوند.
-- Gradle wrapper/daemon/tmp و کش‌های Android Studio با بسته بودن برنامهٔ مرتبط بررسی می‌شوند. Gradle `caches` و Maven `.m2` فقط گزارش هستند.
-- کش‌های محدود Chrome، npm/pip/node-gyp/Go، updaterهای شناخته‌شده، CrashDumps، D3DSCache و `.android/cache` فقط در صورت تأیید نوع و محتوا قابل انتخاب‌اند.
-- سورس متفاوت یا شاخهٔ مستقل حذف نمی‌شود؛ بازیافت سورس تنها برای تکراری کاملاً یکسان با نسخهٔ نگه‌داری‌شدهٔ دوباره‌بررسی‌شده است.
-- پیش‌فرض Recycle Bin است؛ انتقال به آن فضای C را فوراً آزاد نمی‌کند و برنامه آن را تخلیه نمی‌کند. حذف دائمی تنها برای کش مجاز، با تایپ «پاک کن» و غیرقابل بازگردانی است.
-- گزارش عملیات اندازهٔ منطقی پردازش‌شده و فضای واقعی آزاد C قبل/بعد را جداگانه اعلام می‌کند.
+ابتدا اسکن؛ حذف خودکار ندارد. عکس و فیلم، فایل شخصی، سورس، APK، کلید، LocalHistory، Codex sessions/runtime، AVD و SDK حفظ می‌شوند. Gradle `caches` و Maven `.m2` فقط گزارش هستند. پیش‌فرض Recycle Bin است؛ انتقال به آن فضای C را فوراً آزاد نمی‌کند و برنامه آن را تخلیه نمی‌کند. حذف دائمی فقط کشِ مجاز، با تایپ «پاک کن» و غیرقابل بازگردانی است.
 
-گزارش اعتبارسنجی: ۳۳ آزمون fixture موفق، صفر ناموفق، صفر ردشده؛ رندر هفت صفحه موفق. هیچ فایل واقعی کاربر در این آزمون‌ها حذف یا جابه‌جا نشد. پوشش کامل همهٔ برنامه‌های فعال، نسخه‌های ویندوز، ACL و سیاست ظرفیت سطل زباله ادعا نمی‌شود. فایل اجرایی امضای دیجیتال ندارد؛ محافظ ویندوز و آنتی‌ویروس را غیرفعال نکنید.
+گزارش‌های انتشار، تعداد دقیق آزمون‌های موفق و هش همان فایل اجرایی را ثبت می‌کنند. بسته‌بندی فقط وقتی مجاز است که تمام ۳۳ آزمون قبلی، آزمون‌های اضافه، رندر هشت صفحه و آزمون‌های تعامل بدون شکست/ردشدن موفق باشند. آزمون‌های تغییردهنده فقط روی دادهٔ مصنوعی تازه اجرا می‌شوند؛ فایل واقعی کاربر پاک یا جابه‌جا نمی‌شود. این شواهد محلی است، نه تأیید جامع همهٔ برنامه‌ها، نسخه‌های ویندوز، ACL یا سیاست ظرفیت سطل زباله. محدودیت‌های باقی‌مانده در گزارش‌ها و راهنمای امنیت آمده‌اند. فایل اجرایی امضای دیجیتال ندارد؛ محافظ ویندوز/آنتی‌ویروس را غیرفعال نکنید.
 
-[راهنمای فارسی](https://github.com/matinmt3/ClearGuard/blob/v1.0.0/README.fa.md) · [محدودیت‌های ایمنی](https://github.com/matinmt3/ClearGuard/blob/v1.0.0/SECURITY.md)
+[راهنمای فارسی](https://github.com/matinmt3/ClearGuard/blob/v1.1.0/README.fa.md) · [گزارش آزمون](https://github.com/matinmt3/ClearGuard/blob/v1.1.0/docs/Safety-Test-Report.json) · [آزمون رابط](https://github.com/matinmt3/ClearGuard/blob/v1.1.0/docs/UI-Test-Report.json) · [ایمنی](https://github.com/matinmt3/ClearGuard/blob/v1.1.0/SECURITY.md)
 
 ## English
 
-The first ClearGuard release: a portable native Windows tool with a Persian RTL interface for conservative cache cleanup, large-file reports, source-duplicate audits, and explicit Desktop organization.
+This release adds a visible **Exit** button and a read-only **Installed applications** section while retaining the previous conservative cleanup features.
+
+### Changes
+
+- Idle Exit closes the window; busy Exit requests cancellation and waits for safe completion instead of killing the process midway through an operation.
+- Read-only application name, version, publisher, installation path, and size information from machine/current-user 32-/64-bit registry views, plus a best-effort query of current-user Store packages.
+- Registry size is labeled as an estimate; missing size is unknown, not zero. Explicit measurement of a genuine leaf installation folder is read-only. Shared, overlapping, or incomplete figures are not an exact total of system disk usage.
+- JSON/CSV/HTML application exports; no uninstall feature and no execution of uninstall commands.
+- New report bundles never overwrite existing JSON/HTML/CSV files; CSV formula guards also cover leading whitespace. Select-safe operates only on currently visible filtered rows.
+- Expanded synthetic regression tests for application discovery/measurement and native interaction tests covering all eight pages, idle/busy Exit, and the non-destructive installed-app grid.
+- Fixed numeric size sorting and retained write-denial holds on source ZIP keepers and organizer files through final verification/action.
+- **Source folders are report-only**: Windows Shell refuses recycling with the required protection holds, so new folder deletion is blocked instead of weakening protection. Verified safe exact source ZIP duplicates can still be explicitly recycled; existing verified folder receipts remain restorable. Markerless `src`/`app` children are report-only as well.
 
 ### Download and run
 
-Extract `ClearGuard-1.0.0-Windows-Portable.zip` and run `ClearGuard.exe` next to its config. Requires Windows 10/11 and .NET Framework 4.8; no installation or Administrator privileges. Source is available in `ClearGuard-1.0.0-Source.zip` and the repository. Check release assets against `SHA256SUMS.txt`.
+Extract `ClearGuard-1.1.0-Windows-Portable.zip` and run `ClearGuard.exe` beside its config. Windows 10/11 and .NET Framework 4.8; no installation or Administrator requirement. Source is in `ClearGuard-1.1.0-Source.zip` and the repository. Verify assets against `SHA256SUMS.txt`. Close the running application before upgrading and retain recovery receipts. The v1.0.0 release remains available for rollback.
 
-### Highlights and boundaries
+### Safety and validation
 
-- Scan first; no automatic or scheduled deletion.
-- Cleanup protects media, personal files, projects, source, APKs, keys, and LocalHistory. Codex sessions/runtimes, AVDs, and SDK components remain untouched.
-- Process-guarded Gradle wrapper/daemon/tmp and Android Studio caches/indexes; Gradle `caches` and Maven `.m2` are report-only.
-- Recognized Chrome, npm/pip/node-gyp/Go, updater, crash-dump, Direct3D, and Android download cache files are eligible only after type/content checks.
-- Changed sources and independent branches stay. Only verified exact duplicates with a reverified keeper can be recycled.
-- Recycle Bin is the default and does not immediately free C-drive space; the app never empties it. Irreversible permanent deletion is cache-only and requires typing `پاک کن`.
-- Reports separate logical processed bytes from actual free-space changes.
+Scan first; no automatic cleanup. Media, personal files, source, APKs, keys, LocalHistory, Codex sessions/runtimes, AVDs, and SDK components remain protected. Gradle `caches` and Maven `.m2` are report-only. Recycle Bin is the default and does not immediately free C-drive space; the app never empties it. Irreversible permanent deletion is verified-cache-only and requires typing `پاک کن`.
 
-Validation artifacts record 33 passed, 0 failed, 0 skipped fixture tests and successful rendering of seven native pages. No real user files were modified by these tests. This is not exhaustive testing of every live application, Windows version, ACL, or Recycle Bin capacity policy. The executable is unsigned; do not disable antivirus or Windows protections.
+Release reports record the exact passing counts and executable SHA-256. Packaging requires all 33 legacy cases, added regressions, eight page renders, and interaction checks to pass without failure or skips. Mutation tests use newly generated isolated fixtures only, not real user files. This is local evidence, not exhaustive certification of every installed application, Windows version, ACL, or Recycle Bin capacity policy. Remaining gaps are documented in the reports and security guide. The executable is unsigned; do not disable antivirus or Windows protection.
 
-[English guide](https://github.com/matinmt3/ClearGuard/blob/v1.0.0/README.md) · [Safety limits](https://github.com/matinmt3/ClearGuard/blob/v1.0.0/SECURITY.md)
+[English guide](https://github.com/matinmt3/ClearGuard/blob/v1.1.0/README.md) · [Safety tests](https://github.com/matinmt3/ClearGuard/blob/v1.1.0/docs/Safety-Test-Report.json) · [Native UI checks](https://github.com/matinmt3/ClearGuard/blob/v1.1.0/docs/UI-Test-Report.json) · [Safety limits](https://github.com/matinmt3/ClearGuard/blob/v1.1.0/SECURITY.md)
