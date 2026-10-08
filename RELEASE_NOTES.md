@@ -1,6 +1,6 @@
 # ClearGuard v1.2.0
 
-اعتبارسنجی / Validation: **171 safety tests + 36 native UI interaction checks + 11 page renders: PASS; 0 failed, 0 skipped.** All 75 safety / 22 UI checks from v1.1.0 are retained. Only generated fixtures were mutated; no real user cleanup. Journal persistence retries recognized transient Windows errors without a destructive fallback.
+اعتبارسنجی / Validation: **171 safety tests + 37 native UI interaction checks + 11 page renders: PASS; 0 failed, 0 skipped.** All 75 safety / 22 UI checks from v1.1.0 are retained. Includes delayed-response dispatcher synchronization checks. Only generated fixtures were mutated; no real user cleanup. Journal persistence retries recognized transient Windows errors without a destructive fallback.
 
 ## فارسی
 

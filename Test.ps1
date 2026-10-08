@@ -66,6 +66,7 @@ $taskRequiredUiNames = @(
     'Protected folders page provides additive local protection controls'
     'Two dashboard scan interactions persist local baselines and show actual growth'
     'Receipt restore rejects a newly protected original destination before mutation'
+    'Delayed update result resumes on the UI dispatcher without cross-thread access'
 )
 $taskRequiredV12Names = @(
     'Protected folders: tilde and short-path aliases fail closed'
@@ -130,7 +131,7 @@ try {
     }
     $taskPages = Get-Content -LiteralPath (Join-Path $taskUiDir 'ui-smoke.json') -Raw | ConvertFrom-Json
     $taskChecks = Get-Content -LiteralPath (Join-Path $taskUiDir 'ui-integration.json') -Raw | ConvertFrom-Json
-    Assert-AllPassed $taskChecks 36 'Native UI interaction tests'
+    Assert-AllPassed $taskChecks 37 'Native UI interaction tests'
     foreach ($taskRequired in $taskRequiredUiNames) { if ($taskRequired -cnotin @($taskChecks.Tests.Name)) { throw 'A required Exit or installed-application UI check is missing.' } }
     if ($taskPages.Pages.Count -ne 11 -or @($taskPages.Pages | Where-Object {$_ -notlike '*:PASS'}).Count -ne 0 -or $taskPages.DestructiveOperations -ne 0) { throw 'All eleven native page renders must pass without real cleanup.' }
     $taskFinalHash = (Get-FileHash -LiteralPath $taskExe -Algorithm SHA256).Hash.ToLowerInvariant()

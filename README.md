@@ -143,7 +143,7 @@ The exact v1.2.0 binary must pass all safety/UI gates recorded in the published 
 
 ### Source layout
 
-Release validation: **171 safety tests, 36 native UI interaction checks, and 11 page renders passed; zero failures or skips.** All 75 v1.1.0 safety cases and 22 interaction checks remain covered. Journal replacement now retries only bounded, recognized Windows sharing/replacement failures without a destructive fallback. Tests changed only freshly generated fixtures; no real user cleanup was performed.
+Release validation: **171 safety tests, 37 native UI interaction checks, and 11 page renders passed; zero failures or skips.** All 75 v1.1.0 safety cases and 22 interaction checks remain covered. The native harness also tests delayed responses with real dispatcher synchronization. Journal replacement now retries only bounded, recognized Windows sharing/replacement failures without a destructive fallback. Tests changed only freshly generated fixtures; no real user cleanup was performed.
 
 - `App.cs`, `MainWindow.xaml`: native UI and user confirmations.
 - `CacheEngine.cs`, `SafetyPolicy.cs`: candidate allowlist, inspection, and revalidation.

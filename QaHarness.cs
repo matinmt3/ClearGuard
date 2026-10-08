@@ -26,6 +26,13 @@ namespace ClearGuard {
    public List<UiTestEntry> Tests{get;set;}public List<string> Gaps{get;set;}
   }
   public static int Run(Window window,MainController controller,string outputDirectory) {
+   // Direct fixture events run before Application.Run. Model the dispatcher
+   // context of real WPF input so genuinely asynchronous continuations return to UI.
+   SynchronizationContext previous=SynchronizationContext.Current;
+   try{SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));return RunChecks(window,controller,outputDirectory);}
+   finally{SynchronizationContext.SetSynchronizationContext(previous);}
+  }
+  private static int RunChecks(Window window,MainController controller,string outputDirectory) {
    var report=new UiTestReport{StartedUtc=DateTime.UtcNow,Tests=new List<UiTestEntry>(),Gaps=new List<string>(),RealUserFilesModified=false,ExecutableSha256=SafetyPolicy.HashFile(Assembly.GetExecutingAssembly().Location)};
    string fixture=Path.Combine(Environment.CurrentDirectory,"work","ClearGuardTests","ClearGuard-ui-"+Guid.NewGuid().ToString("N"));
    Directory.CreateDirectory(fixture);ScanContext context=FixtureContext(fixture);SetField(controller,"context",context);
@@ -87,6 +94,16 @@ namespace ClearGuard {
    Check(report,"Dashboard page is read-only with an explicit scan action",delegate{Click(window,"NavDashboard");Pump(window);DataGrid grid=Find<DataGrid>(window,"DashboardGrid");Assert(grid.IsReadOnly&&!grid.CanUserDeleteRows&&!grid.CanUserAddRows,"Dashboard allows data mutation.");Assert(Find<Button>(window,"BtnDashboardScan").IsEnabled&&Find<Button>(window,"BtnApply").Visibility==Visibility.Collapsed,"Dashboard lacks scan or exposes cleanup.");});
    Check(report,"Updates page checks only on request and has no automatic installation",delegate{Click(window,"NavUpdates");Pump(window);Assert(Find<Button>(window,"BtnUpdateCheck").IsEnabled,"Manual update check is unavailable.");Assert(!Find<Button>(window,"BtnUpdateOpen").IsEnabled,"Unverified update link is enabled.");Assert(Find<TextBox>(window,"UpdateNotes").IsReadOnly,"Release notes are editable.");Assert(Find<Button>(window,"BtnApply").Visibility==Visibility.Collapsed,"Updates page exposes cleanup.");});
    Check(report,"Protected folders page provides additive local protection controls",delegate{Click(window,"NavProtected");Pump(window);Assert(Find<TextBox>(window,"ProtectedPathInput")!=null&&Find<Button>(window,"BtnProtectedAdd").IsEnabled,"Custom protection controls are missing.");Assert(!Find<Button>(window,"BtnProtectedRemove").IsEnabled,"Protection removal is enabled without a selected custom folder.");Assert(Find<Button>(window,"BtnApply").Visibility==Visibility.Collapsed,"Protection page exposes deletion.");});
+   Check(report,"Delayed update result resumes on the UI dispatcher without cross-thread access",delegate{
+    Assert(SynchronizationContext.Current is DispatcherSynchronizationContext,"Fixture input lacks real WPF dispatcher synchronization.");
+    var pending=new TaskCompletionSource<UpdateFetchResponse>();
+    SetField(controller,"updateChecker",new UpdateChecker(delegate(CancellationToken token){return pending.Task;}));
+    Click(window,"NavUpdates");Click(window,"BtnUpdateCheck");
+    Assert((bool)Field(controller,"busy"),"Delayed update completed before its fixture response.");
+    ThreadPool.QueueUserWorkItem(delegate{pending.SetResult(new UpdateFetchResponse(200,"{\"tag_name\":\"v1.2.1\",\"draft\":false,\"prerelease\":false,\"html_url\":\"https://github.com/matinmt3/ClearGuard/releases/tag/v1.2.1\",\"body\":\"delayed fixture\"}"));});
+    Until(window,delegate{return !(bool)Field(controller,"busy");});
+    Assert(Find<TextBox>(window,"UpdateNotes").Text=="delayed fixture"&&Find<Button>(window,"BtnUpdateOpen").IsEnabled,"Delayed result was not safely applied on the UI dispatcher.");
+   });
    Check(report,"Manual update interaction makes one fixture request and renders inert notes",delegate{
     int requests=0;SetField(controller,"updateChecker",new UpdateChecker(delegate(CancellationToken token){requests++;return Task.FromResult(new UpdateFetchResponse(200,"{\"tag_name\":\"v1.2.1\",\"draft\":false,\"prerelease\":false,\"html_url\":\"https://github.com/matinmt3/ClearGuard/releases/tag/v1.2.1\",\"body\":\"<script>fixture only</script>\"}"));}));
     Click(window,"NavUpdates");Pump(window);Assert(requests==0,"Navigation checked online automatically.");Click(window,"BtnUpdateCheck");Until(window,delegate{return !(bool)Field(controller,"busy");});
