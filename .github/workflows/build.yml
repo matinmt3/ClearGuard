@@ -1,0 +1,36 @@
+name: Windows build and fixture safety tests
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build and test isolated fixtures on fixed C drive
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $taskCiRoot = Join-Path $env:SystemDrive ('ClearGuard-CI-' + [Guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $taskCiRoot | Out-Null
+          Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Force | Where-Object Name -ne '.git' | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $taskCiRoot -Recurse }
+          Push-Location -LiteralPath $taskCiRoot
+          try {
+            & .\Build.ps1
+            & .\Test.ps1
+            Copy-Item -LiteralPath (Join-Path $taskCiRoot 'build') -Destination (Join-Path $env:GITHUB_WORKSPACE 'build') -Recurse
+          } finally { Pop-Location }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ClearGuard-validation
+          path: |
+            build/ClearGuard.exe
+            build/ClearGuard.exe.config
+            build/Safety-Test-Report.json
+            build/UI-Test-Report.json
+          retention-days: 7
