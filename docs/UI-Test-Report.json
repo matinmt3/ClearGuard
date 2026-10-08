@@ -1,1 +1,117 @@
-{"Pages":["NavHome:PASS","NavCache:PASS","NavInventory:PASS","NavSources:PASS","NavOrganize:PASS","NavHistory:PASS","NavSafety:PASS"],"DestructiveOperations":0,"Width":1380,"Height":881}
+{
+  "Product": "ClearGuard",
+  "Version": "1.1.0",
+  "ExeSHA256": "fb1a3cffda5fb816a7a60a2bb7942b41a7035fd582aa0591524e32b8000712b1",
+  "Pages": [
+    "NavHome:PASS",
+    "NavCache:PASS",
+    "NavInventory:PASS",
+    "NavApps:PASS",
+    "NavSources:PASS",
+    "NavOrganize:PASS",
+    "NavHistory:PASS",
+    "NavSafety:PASS"
+  ],
+  "DestructiveOperations": 0,
+  "Width": 1380,
+  "Height": 881,
+  "Passed": 22,
+  "Failed": 0,
+  "Skipped": 0,
+  "RealUserFilesModified": false,
+  "TestScope": "Native page rendering and fixture-backed UI interaction checks only; no cleanup of real user data.",
+  "UiChecks": [
+    {
+      "Name": "Explicit Exit button is present and reachable",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Exit remains inside the visible window at minimum supported size",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Navigation NavHome selects exactly its own panel",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Navigation NavCache selects exactly its own panel",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Navigation NavInventory selects exactly its own panel",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Navigation NavSources selects exactly its own panel",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Navigation NavOrganize selects exactly its own panel",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Navigation NavApps selects exactly its own panel",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Navigation NavHistory selects exactly its own panel",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Navigation NavSafety selects exactly its own panel",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Cache preview sorts bytes and clears all default selections",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Results size column sorts by numeric bytes rather than display text",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Search matches path or app case-insensitively and clearing restores rows",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Filtered select-safe does not select hidden cache rows",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Select safe selects only eligible rows and details show exact row",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Inventory and duplicate audit UI expose no deletion action",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Source and organizer UI cannot select permanent deletion mode",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed applications grid is read-only and cannot delete or uninstall",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed app preview search and raw size sorting preserve unknown values",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Busy state blocks navigation and Stop requests cancellation",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Busy Exit cancels and waits for worker completion",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Idle Exit button closes the window",
+      "Status": "PASS"
+    }
+  ],
+  "Gaps": [
+    "Automated native WPF checks use generated rows and off-screen windows, not a full manual interaction pass on every Windows configuration.",
+    "Actual uninstall is intentionally absent. Real personal-file cleanup and organizer moves were not invoked by UI checks."
+  ]
+}

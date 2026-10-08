@@ -1,10 +1,13 @@
 {
   "Product": "ClearGuard",
-  "Version": "1.0.0",
-  "ExeSHA256": "33894da47e9651b2502bc2a7be171756a4607bb35de3bb61c52a4807f205da1c",
-  "Passed": 33,
+  "Version": "1.1.0",
+  "ExeSHA256": "fb1a3cffda5fb816a7a60a2bb7942b41a7035fd582aa0591524e32b8000712b1",
+  "Passed": 75,
   "Failed": 0,
   "Skipped": 0,
+  "LegacySafetyTestsPassed": 33,
+  "AddedSafetyTestsPassed": 42,
+  "InstalledAppsRequiredCasesPassed": 4,
   "RealUserFilesModified": false,
   "TestScope": "Newly generated isolated fixtures only; no cleanup of real user data.",
   "Tests": [
@@ -70,6 +73,26 @@
     },
     {
       "Name": "Process guard never terminates the running test process",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Actual process guard blocks an owned hidden Chrome fixture without stopping it",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Actual process guard blocks an owned hidden Android Studio fixture without stopping it",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Actual process guard blocks an owned hidden Gradle Java fixture without stopping it",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Actual process guard blocks an owned hidden BlueStacks alias fixture without stopping it",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Actual process guard blocks an owned hidden updater fixture without stopping it",
       "Status": "PASS"
     },
     {
@@ -139,10 +162,159 @@
     {
       "Name": "Unknown local Maven artifact remains untouched",
       "Status": "PASS"
+    },
+    {
+      "Name": "Source folder keeper handles deny concurrent writes and renames",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Organizer move handle denies concurrent writers and still permits rename",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Exact source folders remain report-only and forged deletion is refused",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Different source branches and duplicates containing media or secrets are preserved",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Markerless src or app children with unique parent assets remain report-only",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Partial cache cancellation persists completed and cancelled entries with exact bytes",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Organizer normal move and restore preserve generated media byte-for-byte",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Operation export escapes receipt fields and accurately labels restore versus permanent deletion",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed app exports escape untrusted fields and preserve unknown size without invented zero",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: registry sizes use KiB and remain explicitly estimated",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: signed DWORD and unsigned DWORD agree",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: absent malformed zero and non-DWORD sizes are unknown",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: mirrored registry registrations deduplicate but versions remain",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: same names with distinct registrations are retained",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: system components and update children have explicit hidden counts",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: untrusted names are bounded and control characters removed",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: Store JSON handles empty one and many without command execution",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: malformed and oversized Store JSON fail closed",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: canceled registry and Store parsing stop promptly",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: root system shared and relative locations cannot be measured",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: app folder sizes read lengths only and do not change files",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: unknown location retains prior estimate when measurement refused",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: locked file metadata remains readable without opening content",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: overlapping app roots carry explicit double-count warning",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: measurement cancellation leaves registry estimate untouched",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: bounded measurement never presents partial totals as complete",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: real junctions and linked ancestors are never followed",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: repeated shared paths do not silently aggregate sizes",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: drive-relative and root-relative install paths are rejected",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: manual rows with null notes measure safely",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Installed apps: localized size labels retain machine-readable size kinds",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Report bundles: installed apps save three new formats without data loss",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Report bundles: scan saves three new formats with preserved source data",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Report bundles: existing file or directory companions prevent every write",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Report bundles: exclusive writers reject targets created after preflight",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Report bundles: non-JSON and same-target extension choices are refused",
+      "Status": "PASS"
+    },
+    {
+      "Name": "CSV reports: leading whitespace formula fields remain inert and unchanged",
+      "Status": "PASS"
     }
   ],
   "Gaps": [
     "No cleanup, recycling, or organization of real user files was performed. All mutation tests used newly generated isolated fixture data.",
-    "Live Android Studio/Gradle/Chrome process detection, ACL-denied folders, shell recycle-limit warnings and giant/corrupt archive limits require interactive/manual testing."
+    "Process guards were exercised using hidden generated Chrome/Studio/Java/BlueStacks/updater fixture executables, not every vendor version or inaccessible Java-command scenario. ACL-denied folders, shell recycle-limit warnings and giant/corrupt archive limits still require interactive/manual testing.",
+    "Exact source folders are report-only: Windows Shell refuses folder recycling while required write-denial child handles are held (observed HRESULT 0x80270021). Safe source ZIP duplicate recycling and prior receipt restoration remain tested."
   ]
 }
