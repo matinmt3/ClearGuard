@@ -41,9 +41,11 @@ namespace ClearGuard {
  }
  public static class CacheScanner {
   public static ScanResult Scan(ScanContext ctx,CancellationToken token,Action<string> progress){
+   ctx.ProtectedFolders.Refresh();
    var result=new ScanResult{Kind="Cache",Root=ctx.UserRoot,FreeBefore=Format.FreeC()};var safety=new SafetyPolicy(ctx);
    foreach(CandidateSpec spec in CacheCandidates.Get(ctx)){token.ThrowIfCancellationRequested();if(!Directory.Exists(spec.Path))continue;if(progress!=null)progress(spec.App+" — "+spec.Path);
     var row=new ScanRow{Id=Guid.NewGuid().ToString("N"),Name=Path.GetFileName(spec.Path),Path=spec.Path,Category="Cache",App=spec.App,Effect=spec.Effect};
+    string protection;if(safety.IsProtectedOperationPath(spec.Path,true,out protection)){row.BlockReason=protection;row.Status="محافظت‌شده";row.ProtectedCount=1;row.Eligible=false;row.SafeBytes=0;row.Selected=false;result.Rows.Add(row);continue;}
     string processReason=null;bool allowed=!spec.ReportOnly&&ProcessGuard.Check(spec.App,ctx,out processReason);if(spec.ReportOnly)processReason="فقط گزارش؛ خارج از پاک‌سازی خودکار";else if(allowed)processReason=null;
     if(SafetyPolicy.HasReparseAncestor(spec.Path)){row.BlockReason="Junction یا پیوند؛ پیمایش نشد";row.Status="محافظت‌شده";result.Rows.Add(row);continue;}
     var stack=new Stack<string>();stack.Push(spec.Path);int seen=0;
@@ -61,6 +63,7 @@ namespace ClearGuard {
  public static class CleanupEngine {
   public static bool ValidateCandidate(ScanContext ctx,ScanRow row,FileRecord file,out string reason){
    reason=null;if(row==null||file==null||String.IsNullOrEmpty(file.Hash)||row.Files==null||!row.Files.Any(f=>f.Path==file.Path&&f.Hash==file.Hash)){reason="Manifest بررسی‌شده وجود ندارد";return false;}
+   ctx.ProtectedFolders.Refresh();if(new SafetyPolicy(ctx).IsProtectedOperationPath(row.Path,true,out reason)||new SafetyPolicy(ctx).IsProtectedOperationPath(file.Path,false,out reason))return false;
    try{if(!String.Equals(Path.GetPathRoot(Path.GetFullPath(file.Path)),"C:\\",StringComparison.OrdinalIgnoreCase)){reason="حذف فقط روی درایو C مجاز است";return false;}}catch{reason="مسیر معتبر نیست";return false;}
    CandidateSpec spec=CacheCandidates.Match(ctx,file.Path);if(spec==null||spec.ReportOnly||!SafetyPolicy.IsWithin(file.Path,row.Path)||!String.Equals(spec.Path,Path.GetFullPath(row.Path),StringComparison.OrdinalIgnoreCase)){reason="خارج از فهرست مسیرهای مجاز";return false;}
    if(!spec.Accepts(file.Path)){reason="نوع فایل در این Cache شناخته‌شده نیست";return false;}
@@ -80,6 +83,7 @@ namespace ClearGuard {
       // writers from the final checksum until the operation has completed.
       using(var hold=new FileStream(file.Path,FileMode.Open,FileAccess.Read,FileShare.Read|FileShare.Delete)){
        if(hold.Length!=file.Bytes||SafetyPolicy.HashStream(hold)!=file.Hash)throw new IOException("محتوا پیش از عملیات تغییر کرده است");
+       ctx.ProtectedFolders.Refresh();if(new SafetyPolicy(ctx).IsProtectedOperationPath(row.Path,true,out reason)||new SafetyPolicy(ctx).IsProtectedOperationPath(file.Path,false,out reason))throw new IOException(reason);
        if(permanent){File.Delete(file.Path);if(File.Exists(file.Path))throw new IOException("فایل باقی مانده است");intent.Status="Deleted";intent.Detail="Cache تأییدشده حذف دائمی شد";report.ProcessedBytes+=file.Bytes;}else{OperationEntry receipt=RecycleService.Recycle(file.Path);intent.DestinationPath=receipt.DestinationPath;intent.RecycleMetadata=receipt.RecycleMetadata;intent.Status=receipt.Status;intent.Detail=receipt.Detail;if(receipt.Status=="Recycled")report.ProcessedBytes+=file.Bytes;}
       }
      }}
@@ -87,7 +91,21 @@ namespace ClearGuard {
      SaveJournal(journal,report);
     }if(token.IsCancellationRequested)break;}}finally{report.CompletedUtc=DateTime.UtcNow;report.FreeAfter=Format.FreeC();SaveJournal(journal,report);}return report;
   }
-  public static void SaveJournal(string path,OperationReport report){Directory.CreateDirectory(Path.GetDirectoryName(path));string tmp=path+".writing";File.WriteAllText(tmp,Format.Json(report),new UTF8Encoding(false));if(File.Exists(path))File.Replace(tmp,path,null);else File.Move(tmp,path);}
+  public static void SaveJournal(string path,OperationReport report){Directory.CreateDirectory(Path.GetDirectoryName(path));string tmp=path+".writing";File.WriteAllText(tmp,Format.Json(report),new UTF8Encoding(false));if(File.Exists(path))ReplaceJournalWithRetry(tmp,path,delegate(string source,string destination){File.Replace(source,destination,null);},delegate(int milliseconds){Thread.Sleep(milliseconds);});else File.Move(tmp,path);}
+  internal static void ReplaceJournalWithRetry(string temporary,string target,Action<string,string> replace,Action<int> delay) {
+   int[] pauses={25,50,100,200,200};
+   for(int attempt=0;;attempt++) {
+    try{replace(temporary,target);return;}
+    catch(IOException error) {
+     int code=error.HResult&0xffff;
+     // Retry only known Windows replacement/share/lock failures. No destructive fallback:
+     // both existing paths must remain available, and the same atomic operation is repeated.
+     if((error.HResult&unchecked((int)0xffff0000))!=unchecked((int)0x80070000) || (code!=1175 && code!=32 && code!=33) || attempt>=pauses.Length || !File.Exists(temporary) || !File.Exists(target))throw;
+     delay(pauses[attempt]);
+     if(!File.Exists(temporary) || !File.Exists(target))throw;
+    }
+   }
+  }
  }
  public static class InventoryScanner {
   public static string IdentifyOwner(string file){string p=file.ToLowerInvariant();if(p.EndsWith(".hprof")||p.Contains("androidstudio"))return "Android Studio";if(p.Contains("\\.codex\\")||p.Contains("codex-runtime")||p.Contains("codex-primary-runtime"))return "Codex — محافظت‌شده";if(p.Contains("\\.android\\avd\\"))return "Android Emulator / AVD — محافظت‌شده";if(p.Contains("\\android\\sdk\\"))return "Android SDK / NDK — محافظت‌شده";if(p.Contains("\\google\\chrome\\")&&p.Contains("optimizationguide"))return "Chrome AI model — فقط بررسی";if(p.Contains("\\google\\chrome\\"))return "Chrome";if(p.Contains("\\.gradle\\"))return "Gradle";if(p.Contains("\\.m2\\"))return "Maven";if(p.Contains("\\downloads\\"))return "Downloads — شخصی و محافظت‌شده";if(p.Contains("\\windows\\"))return "Windows — سیستمی و محافظت‌شده";if(p.Contains("\\program files"))return "برنامهٔ نصب‌شده — محافظت‌شده";if(p.Contains("\\programdata\\"))return "ProgramData — محافظت‌شده";return "فایل کاربر / برنامه";}

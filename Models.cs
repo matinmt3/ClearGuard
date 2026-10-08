@@ -76,6 +76,11 @@ namespace ClearGuard {
   public OperationReport(){Id=DateTime.Now.ToString("yyyyMMdd-HHmmss")+"-"+Guid.NewGuid().ToString("N").Substring(0,6);StartedUtc=DateTime.UtcNow;Entries=new List<OperationEntry>();}
  }
  public class ScanContext {
+  private readonly object protectionGate=new object();
+  private ProtectedFolderStore protectedFolders;
+  private string settingsDirectory;
+  public string SettingsDirectory {get{return settingsDirectory;}set{if(!IsFixture)throw new InvalidOperationException("Settings overrides are restricted to isolated fixtures.");lock(protectionGate){if(protectedFolders!=null)throw new InvalidOperationException("Protection settings have already been loaded.");settingsDirectory=value;}}}
+  public ProtectedFolderStore ProtectedFolders {get{lock(protectionGate){if(protectedFolders==null)protectedFolders=new ProtectedFolderStore(IsFixture&&!String.IsNullOrEmpty(settingsDirectory)?settingsDirectory:System.IO.Path.Combine(LocalAppData,"ClearGuard","settings"));return protectedFolders;}}}
   public string UserRoot {get;set;}
   public string LocalAppData {get;set;}
   public string Desktop {get;set;}

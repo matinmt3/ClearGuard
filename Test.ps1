@@ -1,10 +1,10 @@
 param([string]$BuildDirectory = (Join-Path $PSScriptRoot 'build'))
 $ErrorActionPreference = 'Stop'
-$taskVersion = '1.1.0'
+$taskVersion = '1.2.0'
 $BuildDirectory = [IO.Path]::GetFullPath($BuildDirectory)
 $taskExe = Join-Path $BuildDirectory 'ClearGuard.exe'
 if (-not (Test-Path -LiteralPath $taskExe -PathType Leaf)) { throw 'Run Build.ps1 first.' }
-if ([Diagnostics.FileVersionInfo]::GetVersionInfo($taskExe).ProductVersion -notmatch '^1\.1\.0(?:\.0)?$') { throw 'Build the v1.1.0 source before testing this release.' }
+if ([Diagnostics.FileVersionInfo]::GetVersionInfo($taskExe).ProductVersion -notmatch '^1\.2\.0(?:\.0)?$') { throw 'Build the v1.2.0 source before testing this release.' }
 $taskFixtureRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'work\ClearGuardTests'))
 if ([IO.Path]::GetPathRoot($taskFixtureRoot) -ne 'C:\') { throw 'Safety fixtures must be under this repository on C:. Run from a C-drive checkout; no tests were started.' }
 $taskAncestor = $taskFixtureRoot
@@ -61,6 +61,21 @@ $taskRequiredUiNames = @(
     'Installed applications grid is read-only and cannot delete or uninstall'
     'Idle Exit button closes the window'
     'Busy Exit cancels and waits for worker completion'
+    'Dashboard page is read-only with an explicit scan action'
+    'Updates page checks only on request and has no automatic installation'
+    'Protected folders page provides additive local protection controls'
+    'Two dashboard scan interactions persist local baselines and show actual growth'
+    'Receipt restore rejects a newly protected original destination before mutation'
+)
+$taskRequiredV12Names = @(
+    'Protected folders: tilde and short-path aliases fail closed'
+    'Disk dashboard: corrupted history disables automatic exact comparison'
+    'Disk dashboard: tilde components cannot alias scan roots or owned snapshot stores'
+    'Disk dashboard: cancellation before stage write flush or commit leaves no snapshot'
+    'Disk dashboard: cancellation after atomic commit returns saved fact'
+    'Disk dashboard: duplicate decoded root JSON keys cannot manufacture exact comparison'
+    'Disk dashboard: duplicate escaped row bytes and completion keys fail closed'
+    'Disk dashboard: mapped network unknown optical and unavailable drive classes are refused'
 )
 function ConvertTo-PublicTestText([string]$Value) {
     # Omit entire diagnostics containing local paths, rather than exposing filenames.
@@ -80,9 +95,11 @@ try {
     $taskProcess = Start-Process -FilePath $taskExe -ArgumentList @('--self-test',('"'+$taskFixtureRoot+'"'),('"'+$taskRawReport+'"')) -WindowStyle Hidden -Wait -PassThru
     if ($taskProcess.ExitCode -ne 0) { throw 'Safety tests failed; inspect the local raw report. No release packages were generated.' }
     $taskReport = Get-Content -LiteralPath $taskRawReport -Raw | ConvertFrom-Json
-    Assert-AllPassed $taskReport ($taskLegacyNames.Count+$taskRequiredAppsNames.Count) 'Safety tests'
+    Assert-AllPassed $taskReport 171 'Safety tests'
     foreach ($taskLegacy in $taskLegacyNames) { if ($taskLegacy -cnotin @($taskReport.Tests.Name)) { throw 'A required legacy safety test is missing.' } }
     foreach ($taskRequired in $taskRequiredAppsNames) { if ($taskRequired -cnotin @($taskReport.Tests.Name)) { throw 'A required installed-application regression is missing.' } }
+    foreach ($taskRequired in $taskRequiredV12Names) { if ($taskRequired -cnotin @($taskReport.Tests.Name)) { throw 'A required v1.2 protection or dashboard regression is missing.' } }
+    foreach ($taskFamily in @('Update checker:','Disk dashboard:','Protected folders:','Journal persistence:')) { if (@($taskReport.Tests | Where-Object { $_.Name.StartsWith($taskFamily) }).Count -lt 10) { throw 'A required v1.2 feature test family is incomplete.' } }
     $taskAfterHash = (Get-FileHash -LiteralPath $taskExe -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($taskBeforeHash -ne $taskAfterHash) { throw 'Executable changed during safety testing.' }
     $taskPublic = [ordered]@{
@@ -90,6 +107,7 @@ try {
         Passed=$taskReport.Passed; Failed=$taskReport.Failed; Skipped=$taskReport.Skipped
         LegacySafetyTestsPassed=$taskLegacyNames.Count; AddedSafetyTestsPassed=($taskReport.Tests.Count-$taskLegacyNames.Count)
         InstalledAppsRequiredCasesPassed=$taskRequiredAppsNames.Count
+        V12RequiredCasesPassed=$taskRequiredV12Names.Count
         RealUserFilesModified=$false
         TestScope='Newly generated isolated fixtures only; no cleanup of real user data.'
         Tests=@($taskReport.Tests | ForEach-Object { [ordered]@{Name=(ConvertTo-PublicTestText $_.Name);Status=$_.Status} })
@@ -101,9 +119,9 @@ try {
     if ($taskUi.ExitCode -ne 0) { throw 'Native UI page or interaction checks failed; inspect the local UI reports.' }
     $taskPages = Get-Content -LiteralPath (Join-Path $taskUiDir 'ui-smoke.json') -Raw | ConvertFrom-Json
     $taskChecks = Get-Content -LiteralPath (Join-Path $taskUiDir 'ui-integration.json') -Raw | ConvertFrom-Json
-    Assert-AllPassed $taskChecks $taskRequiredUiNames.Count 'Native UI interaction tests'
+    Assert-AllPassed $taskChecks 36 'Native UI interaction tests'
     foreach ($taskRequired in $taskRequiredUiNames) { if ($taskRequired -cnotin @($taskChecks.Tests.Name)) { throw 'A required Exit or installed-application UI check is missing.' } }
-    if ($taskPages.Pages.Count -ne 8 -or @($taskPages.Pages | Where-Object {$_ -notlike '*:PASS'}).Count -ne 0 -or $taskPages.DestructiveOperations -ne 0) { throw 'All eight native page renders must pass without real cleanup.' }
+    if ($taskPages.Pages.Count -ne 11 -or @($taskPages.Pages | Where-Object {$_ -notlike '*:PASS'}).Count -ne 0 -or $taskPages.DestructiveOperations -ne 0) { throw 'All eleven native page renders must pass without real cleanup.' }
     $taskFinalHash = (Get-FileHash -LiteralPath $taskExe -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($taskFinalHash -ne $taskAfterHash -or $taskChecks.ExecutableSha256 -ne $taskFinalHash) { throw 'UI report is not tied to this unchanged executable.' }
     $taskPublicUi = [ordered]@{

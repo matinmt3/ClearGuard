@@ -1,5 +1,31 @@
 # Changelog / تغییرات
 
+## 1.2.0 — 2026-10-08
+
+### Added
+
+- Manual update checks against the fixed official GitHub latest-release endpoint, with a 10-second deadline, no authentication/cookies, bounded strict stable-release validation, inert plain-text notes, and an explicitly opened official release page. No startup polling, telemetry, automatic asset download, installation, or execution.
+- Read-only space dashboard: immediate-folder/direct-root logical-byte categories, horizontal bars, explicit local snapshots, and arithmetic deltas only between two complete scans with matching scope/policy. Default limits: 200,000 entries, 60 seconds, 64 levels, and 4,096 categories. Reparse points are not followed; partial access/limits and invalid history leave deltas unknown.
+- User-added always-protected local folders, strict path/hierarchy validation, atomic owned settings persistence with unique previous-file backups, and explicit confirmed removal of custom entries only.
+- Feature regression fixtures and native checks for all eleven pages. Final passing counts and the exact binary SHA-256 are recorded in the sanitized release reports.
+
+### Safety / Changed
+
+- Custom protections block cache candidates including protected descendants, source candidates and keepers, organizer endpoints, and restore destinations/endpoints. Stale rows cannot bypass final revalidation; custom removal does not weaken built-in rules.
+- Unknown, corrupt, locked, linked, or disappeared previously known protection settings fail closed without silent overwrite/recovery. Missing protected folders remain in the loaded list.
+- Tilde-bearing path components, including Windows 8.3 aliases and legitimate `~` names, are conservatively refused to prevent lexical identity bypasses.
+- Snapshot/settings/report stores remain private local data and are excluded from release packaging. Dashboard snapshot storage is excluded from measurement; cancellation or failed persistence retains prior history.
+- Existing cleanup, source-folder report-only behavior, installed-app inventory, safe exports, receipt recovery, and cancellation-and-wait Exit are retained. v1.1.0 assets remain preserved, but older binaries do not enforce custom protections and must not be used for protected-path operations.
+
+### فارسی
+
+- بررسی دستی آخرین انتشار پایدار GitHub با نشانی ثابت، مهلت ۱۰ ثانیه، بدون احراز هویت/Cookie، یادداشت متن ساده و باز کردن انتخابی صفحهٔ رسمی؛ بدون پرس‌وجوی آغاز برنامه، telemetry، دریافت، نصب یا اجرای خودکار.
+- داشبورد خواندنی حجم منطقی با نمودار افقی و snapshot محلی؛ اختلاف فقط بین دو اسکن کاملِ هم‌محدوده/هم‌سیاست. سقف پیش‌فرض ۲۰۰٬۰۰۰ ورودی، ۶۰ ثانیه، ۶۴ سطح و ۴٬۰۹۶ دسته؛ مسیر پیوندی دنبال نمی‌شود و نتیجهٔ ناقص اختلاف قطعی نیست.
+- پوشهٔ محلیِ موجود و مسیر کامل، دستی به حفاظت افزوده می‌شود؛ ذخیرهٔ atomic با backup یکتا و حذف فقط ورودی سفارشی با تأیید جداگانه.
+- حفاظت سفارشی کش/زیرپوشهٔ آن، سورس/نسخهٔ نگه‌داری‌شده، مبدأ/مقصد دسته‌بندی و بازگردانی را مسدود می‌کند؛ ردیف قدیمی و حذف ورودی سفارشی قواعد ثابت را دور نمی‌زند.
+- تنظیمات خراب، ناشناخته، قفل‌شده، پیوندی یا فایلِ قبلاً موجودِ ناپدیدشده fail-closed است؛ پوشهٔ ناپدیدشده از فهرست حفاظت حذف نمی‌شود. نام کوتاه 8.3 و هر جزء دارای `~`، حتی نام واقعی، محافظه‌کارانه رد می‌شود.
+- حفظ قابلیت‌های قبلی، گسترش fixtureها و آزمون یازده صفحه؛ تعداد نهایی و هش همان باینری در گزارش انتشار. snapshot، تنظیمات و backup خصوصی منتشر نمی‌شوند. انتشار ۱.۱.۰ حفظ می‌شود، اما downgrade حفاظت سفارشی جدید را از دست می‌دهد و برای اقدام روی مسیر محافظت‌شده توصیه نمی‌شود.
+
 ## 1.1.0 — 2026-10-08
 
 ### Added

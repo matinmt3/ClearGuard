@@ -423,6 +423,10 @@ namespace ClearGuard {
    InstalledAppsTestReport installedApps=InstalledAppsTests.RunTests(requested);
    foreach(InstalledAppsTestEntry entry in installedApps.Tests)report.Tests.Add(new TestEntry{Name=entry.Name,Status=entry.Status,Detail=entry.Detail});
    report.Passed+=installedApps.Passed;report.Failed+=installedApps.Failed;report.Skipped+=installedApps.Skipped;
+   var updates=UpdateCheckerTests.RunTests();foreach(var entry in updates.Tests)report.Tests.Add(new TestEntry{Name=entry.Name,Status=entry.Status,Detail=entry.Detail});report.Passed+=updates.Passed;report.Failed+=updates.Failed;report.Skipped+=updates.Skipped;
+   var dashboard=SpaceDashboardTests.RunTests(requested);foreach(var entry in dashboard.Tests)report.Tests.Add(new TestEntry{Name=entry.Name,Status=entry.Status,Detail=entry.Detail});report.Passed+=dashboard.Passed;report.Failed+=dashboard.Failed;report.Skipped+=dashboard.Skipped;
+   var protection=ProtectedFoldersTests.RunTests(requested);foreach(var entry in protection.Tests)report.Tests.Add(new TestEntry{Name=entry.Name,Status=entry.Status,Detail=entry.Detail});report.Passed+=protection.Passed;report.Failed+=protection.Failed;report.Skipped+=protection.Skipped;
+   var journals=JournalTests.RunTests(requested);foreach(var entry in journals.Tests)report.Tests.Add(new TestEntry{Name=entry.Name,Status=entry.Status,Detail=entry.Detail});report.Passed+=journals.Passed;report.Failed+=journals.Failed;report.Skipped+=journals.Skipped;
    report.CompletedUtc=DateTime.UtcNow;
    report.Gaps.Add("No cleanup, recycling, or organization of real user files was performed. All mutation tests used newly generated isolated fixture data.");
    report.Gaps.Add("Process guards were exercised using hidden generated Chrome/Studio/Java/BlueStacks/updater fixture executables, not every vendor version or inaccessible Java-command scenario. ACL-denied folders, shell recycle-limit warnings and giant/corrupt archive limits still require interactive/manual testing.");

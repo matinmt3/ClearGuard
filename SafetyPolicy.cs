@@ -22,7 +22,7 @@ namespace ClearGuard {
    try{string p=Path.GetFullPath(path).TrimEnd('\\','/'),r=Path.GetFullPath(root).TrimEnd('\\','/');return String.Equals(p,r,StringComparison.OrdinalIgnoreCase)||p.StartsWith(r+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase);}catch{return false;}
   }
   public static bool HasReparseAncestor(string path){
-   try{string current=Path.GetFullPath(path);while(!String.IsNullOrEmpty(current)){if((File.Exists(current)||Directory.Exists(current))&&(File.GetAttributes(current)&FileAttributes.ReparsePoint)!=0)return true;string parent=Path.GetDirectoryName(current);if(parent==current)break;current=parent;}return false;}catch{return true;}
+   return ProtectedFolderStore.UnsafeAncestor(path);
   }
   public static bool HasProjectAncestor(string path,string cacheRoot){
    try{string dir=Directory.Exists(path)?Path.GetFullPath(path):Path.GetDirectoryName(Path.GetFullPath(path));while(IsWithin(dir,cacheRoot)){
@@ -32,6 +32,7 @@ namespace ClearGuard {
   }
   public bool IsProtectedFile(string path,out string reason){
    reason=null;
+   if(IsProtectedOperationPath(path,false,out reason))return true;
    if(HasReparseAncestor(path)){reason="پیوند، Junction یا مسیر غیرقابل بررسی";return true;}
    if(!IsWithin(path,context.UserRoot)&&!IsWithin(path,context.LocalAppData)){reason="خارج از مسیر کاربر؛ ویندوز و برنامه‌های نصب‌شده محافظت می‌شوند";return true;}
    string[] personalRoots={context.Desktop,context.Documents,context.Downloads,Path.Combine(context.UserRoot,"Pictures"),Path.Combine(context.UserRoot,"Videos"),Path.Combine(context.UserRoot,"Music"),Path.Combine(context.UserRoot,"AndroidStudioProjects"),Path.Combine(context.UserRoot,".codex"),Path.Combine(context.UserRoot,".ssh"),Path.Combine(context.UserRoot,".aws"),Path.Combine(context.UserRoot,".android","avd"),Path.Combine(context.LocalAppData,"Android","Sdk")};
@@ -39,6 +40,13 @@ namespace ClearGuard {
    string full=Path.GetFullPath(path);
    if(full.IndexOf("\\LocalHistory\\",StringComparison.OrdinalIgnoreCase)>=0||full.EndsWith("\\LocalHistory",StringComparison.OrdinalIgnoreCase)||full.IndexOf("symexvpn",StringComparison.OrdinalIgnoreCase)>=0||full.IndexOf("proxyx",StringComparison.OrdinalIgnoreCase)>=0||full.IndexOf("codex-runtime",StringComparison.OrdinalIgnoreCase)>=0||full.IndexOf("codex-primary-runtime",StringComparison.OrdinalIgnoreCase)>=0){reason="تاریخچهٔ محلی، Codex یا پروژهٔ اصلی محافظت‌شده";return true;}
    return IsProtectedContent(path,out reason);
+  }
+  // Source cleanup/organizer have intentionally narrower built-in permissions
+  // than cache cleanup; custom protections and app artifacts still deny all actions.
+  public bool IsProtectedOperationPath(string path,bool includeDescendants,out string reason){
+   if(context.ProtectedFolders.IsProtected(path,includeDescendants,out reason))return true;
+   foreach(string root in new[]{Path.Combine(context.LocalAppData,"ClearGuard"),context.ReportDirectory})if(!String.IsNullOrWhiteSpace(root)&&(IsWithin(path,root)||(includeDescendants&&IsWithin(root,path)))){reason="تنظیمات، گزارش‌ها و خروجی‌های ClearGuard همیشه محافظت می‌شوند.";return true;}
+   return false;
   }
   public static bool IsProtectedContent(string path,out string reason){return IsProtectedContent(path,out reason,false);}
   public static bool IsProtectedDuplicateContent(string path,out string reason){return IsProtectedContent(path,out reason,true);}

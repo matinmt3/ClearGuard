@@ -14,6 +14,7 @@ namespace ClearGuard {
   internal static readonly HashSet<string> Markers=new HashSet<string>(new[]{"package.json","build.gradle","build.gradle.kts","settings.gradle","settings.gradle.kts","pom.xml","go.mod","cargo.toml","pyproject.toml","requirements.txt","composer.json","pubspec.yaml","androidmanifest.xml"},StringComparer.OrdinalIgnoreCase);
   private sealed class ProjectProof { public bool Source; public bool Safe=true; public string Reason=""; public string Fingerprint=""; public long Bytes; public List<FileRecord> Files=new List<FileRecord>(); public string Version=""; public int VersionRank=99; }
   public static ScanResult Scan(ScanContext ctx,CancellationToken token,Action<string> progress) {
+   ctx.ProtectedFolders.Refresh();
    var result=new ScanResult{Kind="sources",Root=ctx.Desktop,FreeBefore=Format.FreeC()};
    if(!Directory.Exists(ctx.Desktop)){result.Warnings.Add("دسکتاپ پیدا نشد.");return result;}
    var roots=new List<string>(); var archives=new List<string>();
@@ -22,12 +23,12 @@ namespace ClearGuard {
     token.ThrowIfCancellationRequested(); if(progress!=null)progress("بررسی سورس: "+Path.GetFileName(path));
     ProjectProof proof=ProveFolder(path,token); if(!proof.Source)continue;
     if(IsUnscopedSourceChild(path)){proof.Safe=false;proof.Reason="پوشهٔ src/app بدون شناسهٔ مستقل پروژه؛ فایل‌های یکتای والد ممکن است بیرون از محدودهٔ تطبیق باشند. فقط گزارش، بدون حذف.";}
-    result.Rows.Add(ToRow(path,proof,false));
+    result.Rows.Add(ToRow(ctx,path,proof,false));
    }
    foreach(string path in archives.Distinct(StringComparer.OrdinalIgnoreCase)) {
     token.ThrowIfCancellationRequested();if(progress!=null)progress("بررسی آرشیو: "+Path.GetFileName(path));
     ProjectProof proof=ProveArchive(path,token); if(!proof.Source)continue;
-    result.Rows.Add(ToRow(path,proof,true));
+    result.Rows.Add(ToRow(ctx,path,proof,true));
    }
    foreach(var group in result.Rows.Where(r=>r.Fingerprint!=null&&r.Fingerprint.Length>0&&r.ProtectedCount==0).GroupBy(r=>(Directory.Exists(r.Path)?"folder:":"zip:")+r.Fingerprint,StringComparer.Ordinal)) {
     var members=group.OrderBy(r=>LooksBackup(r.Path)?1:0).ThenByDescending(r=>VersionNumber(r.Path)).ThenBy(r=>r.Path.Length).ThenBy(r=>r.Path,StringComparer.OrdinalIgnoreCase).ToList();
@@ -63,10 +64,11 @@ namespace ClearGuard {
     }
    } catch(OperationCanceledException){throw;}catch(Exception e){warnings.Add(path+": "+e.Message);}
   }
-  private static ScanRow ToRow(string path,ProjectProof p,bool archive) {
+  private static ScanRow ToRow(ScanContext ctx,string path,ProjectProof p,bool archive) {
    string originalReason="";bool original=IsOriginal(path,out originalReason);
    var row=new ScanRow{Id=Guid.NewGuid().ToString("N"),Name=Path.GetFileName(path),Path=path,Category=archive?"آرشیو سورس":"پروژه / سورس",App="نسخه‌های دسکتاپ",Bytes=p.Bytes,FileCount=p.Files.Count,Files=p.Files,Version=String.IsNullOrEmpty(p.Version)?"نامشخص":p.Version,Fingerprint=p.Safe&&!original?p.Fingerprint:"",Eligible=false,Selected=false};
    if(archive&&p.Files.Count>0)row.Hash=p.Files[0].Hash;
+   string customReason;if(new SafetyPolicy(ctx).IsProtectedOperationPath(path,true,out customReason)){row.Fingerprint="";row.Eligible=false;row.Selected=false;row.SafeBytes=0;row.ProtectedCount=1;row.Status="محافظت‌شده";row.BlockReason=customReason;row.Effect="دست‌نخورده باقی می‌ماند؛ "+customReason;return row;}
    if(original||!p.Safe){row.ProtectedCount=1;row.Status="حفاظت‌شده";row.BlockReason=original?originalReason:p.Reason;row.Effect="دست‌نخورده باقی می‌ماند؛ "+row.BlockReason;}
    else{row.Status="منحصر‌به‌فرد / بررسی دستی";row.Effect="فایل یا شاخهٔ متفاوت خودکار حذف نمی‌شود؛ نسخه تنها با برابری کامل محتوا تکراری تشخیص داده می‌شود.";}
    return row;
@@ -154,6 +156,7 @@ namespace ClearGuard {
   internal static string HashText(string s){using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(s))).Replace("-","");}
   internal static bool VerifySourceRow(ScanContext ctx,ScanRow row,CancellationToken token,out string reason) {
    reason="";if(row==null||!row.Eligible||String.IsNullOrEmpty(row.Keeper)||String.IsNullOrEmpty(row.Fingerprint)){reason="ردیف مجاز یا نسخهٔ نگه‌داری‌شده وجود ندارد.";return false;}
+   ctx.ProtectedFolders.Refresh();var safety=new SafetyPolicy(ctx);if(safety.IsProtectedOperationPath(row.Path,true,out reason)||safety.IsProtectedOperationPath(row.Keeper,true,out reason))return false;
    string desktop=Path.GetFullPath(ctx.Desktop).TrimEnd('\\');
    if(!SafetyPolicy.IsWithin(row.Path,desktop)||!SafetyPolicy.IsWithin(row.Keeper,desktop)||String.Equals(Path.GetFullPath(row.Path),desktop,StringComparison.OrdinalIgnoreCase)||String.Equals(Path.GetFullPath(row.Path),Path.GetFullPath(row.Keeper),StringComparison.OrdinalIgnoreCase)){reason="مسیر خارج از دسکتاپ یا همان نسخهٔ اصلی است.";return false;}
    if(SafetyPolicy.HasReparseAncestor(row.Path)||SafetyPolicy.HasReparseAncestor(row.Keeper)){reason="مسیر پیوندی / junction اجازه ندارد.";return false;}
@@ -226,6 +229,7 @@ namespace ClearGuard {
    if(new[]{".exe",".msi",".msix",".apk",".aab",".bat",".cmd",".ps1"}.Contains(ext,StringComparer.OrdinalIgnoreCase))return Categories[5];return Categories[7];
   }
   public static ScanResult Preview(ScanContext ctx,CancellationToken token,Action<string> progress) {
+   ctx.ProtectedFolders.Refresh();
    var result=new ScanResult{Kind="organizer",Root=ctx.Desktop,FreeBefore=Format.FreeC()};if(!Directory.Exists(ctx.Desktop))return result;
    foreach(string path in Directory.GetFileSystemEntries(ctx.Desktop)) {
     token.ThrowIfCancellationRequested();if(Path.GetFileName(path).Equals("دسکتاپ مرتب",StringComparison.OrdinalIgnoreCase)||Path.GetFileName(path).Equals("desktop.ini",StringComparison.OrdinalIgnoreCase))continue;
@@ -233,6 +237,7 @@ namespace ClearGuard {
     var row=new ScanRow{Id=Guid.NewGuid().ToString("N"),Name=Path.GetFileName(path),Path=path,Category=Classify(path),App="مرتب‌سازی دسکتاپ",Keeper=TargetFor(ctx,path),Selected=false,Eligible=false,Status="نیازمند انتخاب",Effect="انتقال بدون حذف، با رسید SHA-256 و امکان بازگردانی؛ مسیر مقصد: "+TargetFor(ctx,path)};
     string why;
     try {
+     if(new SafetyPolicy(ctx).IsProtectedOperationPath(path,true,out why)||new SafetyPolicy(ctx).IsProtectedOperationPath(row.Keeper,true,out why)){row.Status="محافظت‌شده";row.BlockReason=why;row.Effect=why;row.ProtectedCount=1;row.SafeBytes=0;result.Rows.Add(row);continue;}
      if(Directory.Exists(path)){row.Status="پوشه / پروژه حفظ می‌شود";row.BlockReason="برای حفظ مسیر پروژه‌ها، پوشه‌ها جابه‌جا نمی‌شوند.";row.Effect=row.BlockReason;}
      else {
       FileInfo f=new FileInfo(path);row.Bytes=f.Length;row.FileCount=1;row.Hash=SafetyPolicy.HashFile(path);row.Fingerprint=row.Hash;row.Files.Add(new FileRecord{Path=path,Bytes=f.Length,ModifiedTicks=f.LastWriteTimeUtc.Ticks,Hash=row.Hash});
@@ -246,6 +251,7 @@ namespace ClearGuard {
   }
   private static bool CanMove(ScanContext ctx,string source,string destination,out string reason) {
    reason="";string desktop=Path.GetFullPath(ctx.Desktop).TrimEnd('\\');
+   ctx.ProtectedFolders.Refresh();var safety=new SafetyPolicy(ctx);if(safety.IsProtectedOperationPath(source,true,out reason)||safety.IsProtectedOperationPath(destination,true,out reason))return false;
    if(!File.Exists(source)||Directory.Exists(source)){reason="فقط فایل مستقل مجاز است؛ پوشه/پروژه حرکت نمی‌کند.";return false;}
    if(!String.Equals(Path.GetDirectoryName(Path.GetFullPath(source)),desktop,StringComparison.OrdinalIgnoreCase)){reason="فقط فایل مستقل در سطح اصلی دسکتاپ مجاز است.";return false;}
    if(!String.Equals(Path.GetFullPath(destination),Path.GetFullPath(TargetFor(ctx,source)),StringComparison.OrdinalIgnoreCase)||!SafetyPolicy.IsWithin(destination,Path.Combine(desktop,"دسکتاپ مرتب"))){reason="مقصد خارج از برنامهٔ مرتب‌سازی است.";return false;}
@@ -301,11 +307,12 @@ namespace ClearGuard {
     var restored=new OperationEntry{OriginalPath=entry.DestinationPath,DestinationPath=entry.OriginalPath,Bytes=entry.Bytes,Hash=entry.Hash};
     try {
      string source=Path.GetFullPath(entry.DestinationPath),target=Path.GetFullPath(entry.OriginalPath),desktop=Path.GetDirectoryName(target),folder=Path.Combine(desktop,"دسکتاپ مرتب");
+     ctx.ProtectedFolders.Refresh();string protection;if(new SafetyPolicy(ctx).IsProtectedOperationPath(source,true,out protection)||new SafetyPolicy(ctx).IsProtectedOperationPath(target,true,out protection)){restored.Status="skipped";restored.Detail=protection;report.Entries.Add(restored);continue;}
      string[] rel=source.Substring(folder.TrimEnd('\\').Length).TrimStart('\\').Split('\\');
      if(!String.Equals(desktop,Path.GetFullPath(ctx.Desktop).TrimEnd('\\'),StringComparison.OrdinalIgnoreCase)||!SafetyPolicy.IsWithin(source,folder)||rel.Length!=2||!Categories.Contains(rel[0])||!String.Equals(rel[1],Path.GetFileName(target),StringComparison.OrdinalIgnoreCase)||SafetyPolicy.HasReparseAncestor(source)||SafetyPolicy.HasReparseAncestor(target)){restored.Status="skipped";restored.Detail="مسیرهای رسید معتبر یا مستقل نیستند.";}
      else if(File.Exists(target)||Directory.Exists(target)){restored.Status="skipped";restored.Detail="مسیر اصلی اکنون وجود دارد؛ فایل موجود هرگز بازنویسی نمی‌شود.";}
      else if(!File.Exists(source)||String.IsNullOrEmpty(entry.Hash)||new FileInfo(source).Length!=entry.Bytes||SafetyPolicy.HashFile(source)!=entry.Hash){restored.Status="skipped";restored.Detail="فایل مقصد تغییر کرده یا موجود نیست؛ بازگردانی خودکار مجاز نیست.";}
-     else{restored.Status="pending";restored.Detail="بازگردانی هنوز تکمیل نشده است.";report.Entries.Add(restored);string reason;if(!DesktopJournal.Persist(ctx,report,out reason)){restored.Status="skipped";restored.Detail="رسید ذخیره نشد: "+reason;continue;}File.Move(source,target);restored.Status="restored";restored.Detail="به مسیر اصلی بازگردانده شد؛ SHA-256 قبل از انتقال تأیید شد.";report.ProcessedBytes+=entry.Bytes;DesktopJournal.Persist(ctx,report,out reason);}
+     else{restored.Status="pending";restored.Detail="بازگردانی هنوز تکمیل نشده است.";report.Entries.Add(restored);string reason;if(!DesktopJournal.Persist(ctx,report,out reason)){restored.Status="skipped";restored.Detail="رسید ذخیره نشد: "+reason;continue;}ctx.ProtectedFolders.Refresh();if(new SafetyPolicy(ctx).IsProtectedOperationPath(source,true,out reason)||new SafetyPolicy(ctx).IsProtectedOperationPath(target,true,out reason))throw new IOException(reason);File.Move(source,target);restored.Status="restored";restored.Detail="به مسیر اصلی بازگردانده شد؛ SHA-256 قبل از انتقال تأیید شد.";report.ProcessedBytes+=entry.Bytes;DesktopJournal.Persist(ctx,report,out reason);}
     }catch(Exception e){restored.Status="skipped";restored.Detail=e.Message;}if(!report.Entries.Contains(restored))report.Entries.Add(restored);
    }
    report.FreeAfter=Format.FreeC();report.CompletedUtc=DateTime.UtcNow;string saveReason;DesktopJournal.Persist(ctx,report,out saveReason);return report;
