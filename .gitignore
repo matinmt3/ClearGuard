@@ -1,0 +1,12 @@
+build/
+dist/
+work/
+.vs/
+*.user
+*.suo
+*.pdb
+*.exe
+*.dll
+*.zip
+*-raw.json
+!.github/
