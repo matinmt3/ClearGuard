@@ -1,0 +1,148 @@
+{
+  "Product": "ClearGuard",
+  "Version": "1.0.0",
+  "ExeSHA256": "33894da47e9651b2502bc2a7be171756a4607bb35de3bb61c52a4807f205da1c",
+  "Passed": 33,
+  "Failed": 0,
+  "Skipped": 0,
+  "RealUserFilesModified": false,
+  "TestScope": "Newly generated isolated fixtures only; no cleanup of real user data.",
+  "Tests": [
+    {
+      "Name": "Path boundary rejects prefix siblings and dot-dot escape",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Image and video extension preservation",
+      "Status": "PASS"
+    },
+    {
+      "Name": "PNG header protects a disguised .dat file",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Media inside an opaque cache blob is protected across buffer boundaries",
+      "Status": "PASS"
+    },
+    {
+      "Name": "ZIP with media and nested ZIP with media are protected",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Unknown nested compressed archive is fail-closed",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Sensitive .env entry inside a cache archive is preserved",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Source code, APK, AAB, and key material are preserved",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Desktop, Documents, Downloads, Codex and AVD are never cache deletion targets",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Unknown cache path and outside-user path are refused",
+      "Status": "PASS"
+    },
+    {
+      "Name": "SHA revalidation detects changed content with identical length and timestamp",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Exclusive lock blocks deletion and leaves file intact",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Media created after scan is retained on revalidation",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Isolated approved safe-cache fixture deletion reports exact logical bytes",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Reparse ancestor is detected without traversing target",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Process guard never terminates the running test process",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Exact source archive duplicates keep newest and remain unselected",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Changed source keeper blocks duplicate recycling",
+      "Status": "PASS"
+    },
+    {
+      "Name": "SYMEXVPN and proxyx copies are not source-cleanup candidates",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Organizer destination collision blocks move without overwrite",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Organizer move and restore conflict preserve both copies",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Organizer restore refuses a forged journal outside the actual Desktop",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Actual Recycle Bin receipt and SHA-verified restore of generated fixture",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Actual Recycle Bin restore conflict never overwrites and remains recoverable",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Actual Recycle Bin folder restore preserves nested files and empty directories",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Cancellation before cleanup preserves generated candidate",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Deep organized Desktop container still discovers protected originals",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Approved exact source ZIP recycling and recovery preserve keeper",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Large-file inventory and drive duplicates are read-only and SHA-proven",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Report exports escape HTML and neutralize spreadsheet formulas",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Android app version is not confused with a dependency package version",
+      "Status": "PASS"
+    },
+    {
+      "Name": "ZIP trailing media outside entries is preserved fail-closed",
+      "Status": "PASS"
+    },
+    {
+      "Name": "Unknown local Maven artifact remains untouched",
+      "Status": "PASS"
+    }
+  ],
+  "Gaps": [
+    "No cleanup, recycling, or organization of real user files was performed. All mutation tests used newly generated isolated fixture data.",
+    "Live Android Studio/Gradle/Chrome process detection, ACL-denied folders, shell recycle-limit warnings and giant/corrupt archive limits require interactive/manual testing."
+  ]
+}
